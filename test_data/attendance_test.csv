@@ -1,0 +1,7 @@
+student_id,date,status,period
+STU011,2024-12-20,Present,1
+STU011,2024-12-19,Tardy,1
+STU011,2024-12-18,Present,1
+STU012,2024-12-20,Present,1
+STU012,2024-12-19,Absent,1
+STU013,2024-12-20,Present,1

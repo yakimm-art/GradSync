@@ -1,0 +1,6 @@
+student_id,course,assignment,score,max_score,date
+STU011,Algebra I,Quiz 1,85,100,2024-12-15
+STU011,English 9,Essay 1,78,100,2024-12-16
+STU012,Biology,Lab Report,92,100,2024-12-18
+STU012,Geometry,Test 1,88,100,2024-12-17
+STU013,US History,Project,95,100,2024-12-19

@@ -1,0 +1,4 @@
+student_id,first_name,last_name,grade_level,enrollment_date,parent_email
+STU011,Alex,Thompson,9,2024-08-15,thompson@email.com
+STU012,Maria,Santos,10,2023-08-15,santos@email.com
+STU013,David,Lee,11,2022-08-15,lee.family@email.com
