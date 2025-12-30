@@ -1,0 +1,14 @@
+definition_version: 2
+
+entities:
+  gradsync_app:
+    type: streamlit
+    identifier:
+      name: GRADSYNC_APP
+      schema: APP
+      database: GRADSYNC_DB
+    title: "GradSync - Student Risk Dashboard"
+    query_warehouse: GRADSYNC_WH
+    main_file: streamlit/gradsync_app.py
+    stage: GRADSYNC_DB.APP.STREAMLIT_STAGE
+    pages_dir: null
