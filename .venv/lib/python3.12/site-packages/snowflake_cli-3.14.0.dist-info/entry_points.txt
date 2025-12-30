@@ -1,0 +1,2 @@
+[console_scripts]
+snow = snowflake.cli._app.__main__:main

@@ -1,0 +1,301 @@
+# Copyright (c) 2024 Snowflake Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+from __future__ import annotations
+
+import dataclasses
+import logging
+from functools import wraps
+from typing import Any, Callable, Dict, List, Optional, Tuple
+
+import click
+import typer
+from click import ClickException
+from snowflake.cli.api.commands.decorators import (
+    global_options,
+    global_options_with_connection,
+)
+from snowflake.cli.api.commands.execution_metadata import (
+    ExecutionMetadata,
+    ExecutionStatus,
+)
+from snowflake.cli.api.commands.flags import DEFAULT_CONTEXT_SETTINGS
+from snowflake.cli.api.exceptions import (
+    BaseCliError,
+    CliArgumentError,
+    CliError,
+    CliSqlError,
+    CommandReturnTypeError,
+)
+from snowflake.cli.api.output.types import CommandResult
+from snowflake.cli.api.sanitizers import sanitize_for_terminal
+from snowflake.cli.api.sql_execution import SqlExecutionMixin
+from snowflake.connector import DatabaseError
+from typer.core import TyperGroup
+
+log = logging.getLogger(__name__)
+
+PREVIEW_PREFIX = ""
+
+
+class SortedTyperGroup(TyperGroup):
+    def list_commands(self, ctx: click.Context) -> List[str]:
+        """
+        From Typer 0.13.0 help items are in order of definition, this function override that approach.
+        Returns a list of subcommand names in the alphabetic order.
+        """
+        return sorted(self.commands)
+
+
+class SnowTyper(typer.Typer):
+    def __init__(self, /, **kwargs):
+        self._sanitize_kwargs(kwargs)
+        super().__init__(
+            **kwargs,
+            context_settings=DEFAULT_CONTEXT_SETTINGS,
+            pretty_exceptions_show_locals=False,
+            no_args_is_help=True,
+            add_completion=True,
+            rich_markup_mode="markdown",
+            cls=SortedTyperGroup,
+        )
+
+    @staticmethod
+    def _sanitize_kwargs(kwargs: Dict):
+        # Sanitize all string options that are visible in terminal output
+        known_keywords = [
+            "help",
+            "short_help",
+            "options_metavar",
+            "rich_help_panel",
+            "epilog",
+        ]
+        for kw in known_keywords:
+            if kw in kwargs:
+                kwargs[kw] = sanitize_for_terminal(kwargs[kw])
+        return kwargs
+
+    @wraps(typer.Typer.command)
+    def command(
+        self,
+        name: Optional[str] = None,
+        requires_global_options: bool = True,
+        requires_connection: bool = False,
+        is_enabled: Callable[[], bool] | None = None,
+        require_warehouse: bool = False,
+        preview: bool = False,
+        **kwargs,
+    ):
+        """
+        Custom implementation of Typer.command that adds ability to execute additional
+        logic before and after execution as well as process the result and act on possible
+        errors.
+        """
+        name = sanitize_for_terminal(name)
+        self._sanitize_kwargs(kwargs)
+        if is_enabled is not None and not is_enabled():
+            return lambda func: func
+
+        def custom_command(command_callable):
+            """Custom command wrapper similar to Typer.command."""
+            command_callable.__doc__ = sanitize_for_terminal(command_callable.__doc__)
+
+            if preview and command_callable.__doc__:
+                if not command_callable.__doc__.strip().startswith(PREVIEW_PREFIX):
+                    command_callable.__doc__ = (
+                        f"{PREVIEW_PREFIX}{command_callable.__doc__.strip()}"
+                    )
+
+            if preview and "help" in kwargs and kwargs["help"]:
+                if not kwargs["help"].strip().startswith(PREVIEW_PREFIX):
+                    kwargs["help"] = f"{PREVIEW_PREFIX}{kwargs['help'].strip()}"
+
+            if requires_connection:
+                command_callable = global_options_with_connection(command_callable)
+            elif requires_global_options:
+                command_callable = global_options(command_callable)
+
+            @wraps(command_callable)
+            def command_callable_decorator(*args, **kw):
+                """Wrapper around command callable. This is what happens at "runtime"."""
+                execution = ExecutionMetadata()
+                self.pre_execute(execution, require_warehouse=require_warehouse)
+                try:
+                    result = command_callable(*args, **kw)
+                    self.process_result(result)
+                    execution.complete(ExecutionStatus.SUCCESS)
+                except BaseException as err:
+                    execution.complete(ExecutionStatus.FAILURE)
+                    exception = self.exception_handler(err, execution)
+                    raise exception
+                finally:
+                    self.post_execute(execution)
+
+            return super(SnowTyper, self).command(name=name, **kwargs)(
+                command_callable_decorator
+            )
+
+        return custom_command
+
+    @staticmethod
+    def pre_execute(execution: ExecutionMetadata, require_warehouse: bool = False):
+        """
+        Callback executed before running any command callable (after context execution).
+        Pay attention to make this method safe to use if performed operations are not necessary
+        for executing the command in proper way.
+        """
+        from snowflake.cli._app.telemetry import log_command_usage
+
+        log.debug("Executing command pre execution callback")
+        log_command_usage(execution)
+        if require_warehouse and not SqlExecutionMixin().session_has_warehouse():
+            raise ClickException(
+                "The command requires warehouse. No warehouse found in current connection."
+            )
+
+    @staticmethod
+    def process_result(result):
+        """Command result processor"""
+        from snowflake.cli._app.printing import print_result
+
+        # Because we still have commands like "logs" that do not return anything.
+        # We should improve it in future.
+        if not result:
+            return
+        if not isinstance(result, CommandResult):
+            raise CommandReturnTypeError(type(result))
+        print_result(result)
+
+    @staticmethod
+    def exception_handler(exception: Exception, execution: ExecutionMetadata):
+        """
+        Callback executed on command execution error.
+        """
+        from snowflake.cli._app.telemetry import log_command_execution_error
+
+        log.debug("Executing command exception callback")
+        log_command_execution_error(exception, execution)
+        exception = SnowTyper._cli_base_exception_migration_dispatcher(exception)
+        return exception
+
+    @staticmethod
+    def _cli_base_exception_migration_dispatcher(exception):
+        """Handler used for dispatching exception until migration completed."""
+        if isinstance(
+            exception, (BaseCliError, CliError, CliArgumentError, CliSqlError)
+        ):
+            return exception
+
+        if isinstance(exception, DatabaseError):
+            return CliSqlError(exception.msg)
+
+        return exception
+
+    @staticmethod
+    def post_execute(execution: ExecutionMetadata):
+        """
+        Callback executed after running any command callable. Pay attention to make this method safe to
+        use if performed operations are not necessary for executing the command in proper way.
+        """
+        from snowflake.cli._app.telemetry import flush_telemetry, log_command_result
+
+        log.debug("Executing command post execution callback")
+        log_command_result(execution)
+        flush_telemetry()
+
+
+@dataclasses.dataclass
+class SnowTyperCommandData:
+    """
+    Class for storing data of commands to be registered in SnowTyper instances created by SnowTyperFactory.
+    """
+
+    func: Callable
+    args: Tuple[Any, ...]
+    kwargs: Dict[str, Any]
+
+
+class SnowTyperFactory:
+    """
+    SnowTyper factory. Usage is similar to SnowTyper, except that create_instance()
+    creates actual SnowTyper instance.
+    """
+
+    def __init__(
+        self,
+        /,
+        name: Optional[str] = None,
+        help: Optional[str] = None,  # noqa: A002
+        short_help: Optional[str] = None,
+        is_hidden: Optional[Callable[[], bool]] = None,
+        deprecated: bool = False,
+        preview: bool = False,
+        subcommand_metavar: Optional[str] = None,
+    ):
+        self.name = name
+        self.help = help
+        self.short_help = short_help
+        self.is_hidden = is_hidden
+        self.deprecated = deprecated
+        self.preview = preview
+        self.commands_to_register: List[SnowTyperCommandData] = []
+        self.subapps_to_register: List[SnowTyperFactory] = []
+        self.callbacks_to_register: List[Callable] = []
+        self.subcommand_metavar = subcommand_metavar
+
+    def create_instance(self) -> SnowTyper:
+        help_text = self.help
+        if self.preview and help_text:
+            if not help_text.strip().startswith(PREVIEW_PREFIX):
+                help_text = f"{PREVIEW_PREFIX}{help_text.strip()}"
+
+        app = SnowTyper(
+            name=self.name,
+            help=help_text,
+            short_help=self.short_help,
+            hidden=self.is_hidden() if self.is_hidden else False,
+            deprecated=self.deprecated,
+            subcommand_metavar=self.subcommand_metavar,
+        )
+        # register commands
+        for command in self.commands_to_register:
+            if self.preview and "preview" not in command.kwargs:
+                command.kwargs["preview"] = True
+            app.command(*command.args, **command.kwargs)(command.func)
+        # register callbacks
+        for callback in self.callbacks_to_register:
+            app.callback()(callback)
+        # add subgroups
+        for subapp in self.subapps_to_register:
+            app.add_typer(subapp.create_instance())
+        return app
+
+    def command(self, *args, **kwargs):
+        def decorator(command):
+            self.commands_to_register.append(
+                SnowTyperCommandData(command, args=args, kwargs=kwargs)
+            )
+            return command
+
+        return decorator
+
+    def add_typer(self, snow_typer: SnowTyperFactory) -> None:
+        self.subapps_to_register.append(snow_typer)
+
+    def callback(self):
+        def decorator(callback):
+            self.callbacks_to_register.append(callback)
+            return callback
+
+        return decorator

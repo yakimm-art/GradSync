@@ -1,0 +1,181 @@
+import contextlib
+import functools
+import inspect
+import sys
+from typing import Callable, Tuple
+
+try:
+    import snowflake.snowpark
+except ModuleNotFoundError as exc:
+    print(
+        "An exception occurred while importing snowflake-snowpark-python package: ",
+        exc,
+        file=sys.stderr,
+    )
+    sys.exit(1)
+
+__snowflake_internal_found_correct_version = hasattr(
+    snowflake.snowpark.context, "_is_execution_environment_sandboxed_for_client"
+) and hasattr(snowflake.snowpark.context, "_should_continue_registration")
+
+if not __snowflake_internal_found_correct_version:
+    print(
+        "Did not find the minimum required version for snowflake-snowpark-python package. Please upgrade to v1.15.0 or higher.",
+        file=sys.stderr,
+    )
+    sys.exit(1)
+
+__snowflake_global_collected_extension_fn_json = []
+
+def __snowflake_internal_create_extension_fn_registration_callback():
+    def __snowflake_internal_try_extract_lineno(extension_fn):
+        try:
+            return inspect.getsourcelines(extension_fn)[1]
+        except Exception:
+            return None
+
+    def __snowflake_internal_extract_extension_fn_name(extension_fn):
+        try:
+            import snowflake.snowpark._internal.utils as snowpark_utils
+
+            if hasattr(snowpark_utils, 'TEMP_OBJECT_NAME_PREFIX'):
+                if extension_fn.object_name.startswith(snowpark_utils.TEMP_OBJECT_NAME_PREFIX):
+                    # The object name is a generated one, don't use it
+                    return None
+
+        except Exception:
+            # ignore any exception and fall back to using the object name reported from Snowpark
+            pass
+
+        return extension_fn.object_name
+
+    def __snowflake_internal_create_package_list(extension_fn):
+        if not extension_fn.all_packages.strip():
+            return []
+        return [pkg_spec.strip() for pkg_spec in extension_fn.all_packages.split(",")]
+
+    def __snowflake_internal_make_extension_fn_signature(extension_fn):
+        # Try to fetch the original argument names from the extension function
+        try:
+            args_spec = inspect.getfullargspec(extension_fn.func)
+            original_arg_names = args_spec[0]
+            start_index = len(original_arg_names) - len(extension_fn.input_sql_types)
+            signature = []
+            defaults_start_index = len(original_arg_names) - len(args_spec.defaults or [])
+            for i in range(len(extension_fn.input_sql_types)):
+                arg = {
+                    'name': original_arg_names[start_index + i],
+                    'type': extension_fn.input_sql_types[i]
+                }
+                if i >= defaults_start_index:
+                    arg['default'] = args_spec.defaults[defaults_start_index + i]
+                signature.append(arg)
+
+            return signature
+        except Exception as e:
+            msg = str(e)
+            pass # ignore, we'll use the fallback strategy
+
+        # Failed to extract the original arguments through reflection, fall back to alternative approach
+        return [
+            {"name": input_arg.name, "type": input_type}
+            for (input_arg, input_type) in zip(extension_fn.input_args, extension_fn.input_sql_types)
+        ]
+
+    def __snowflake_internal_to_extension_fn_type(object_type):
+        if object_type.name == "AGGREGATE_FUNCTION":
+            return "aggregate function"
+        if object_type.name == "TABLE_FUNCTION":
+            return "table function"
+        return object_type.name.lower()
+
+    def __snowflake_internal_imports_union_to_str_type(raw_imports):
+        final_imports = []
+        if raw_imports:
+            for raw_import in raw_imports:
+                if isinstance(raw_import, str):
+                    final_imports.append(raw_import)
+                else:
+                    final_imports.append(raw_import[0])
+        return final_imports
+
+
+    def __snowflake_internal_extension_fn_to_json(extension_fn):
+        if not (isinstance(extension_fn.func, Callable) or isinstance(extension_fn.func, Tuple)):
+            return
+
+        if extension_fn.anonymous:
+            # unsupported, native application extension functions need to be explicitly named
+            return
+
+        # Collect basic properties of the extension function
+        extension_fn_json = {
+            "type": __snowflake_internal_to_extension_fn_type(extension_fn.object_type),
+            "lineno": __snowflake_internal_try_extract_lineno(extension_fn.func),
+            "name": __snowflake_internal_extract_extension_fn_name(extension_fn),
+            "handler": extension_fn.func.__name__,
+            "imports": __snowflake_internal_imports_union_to_str_type(extension_fn.raw_imports),
+            "packages": __snowflake_internal_create_package_list(extension_fn),
+            "runtime": extension_fn.runtime_version,
+            "returns": extension_fn.return_sql.upper().replace("RETURNS ", "").strip(),
+            "signature": __snowflake_internal_make_extension_fn_signature(extension_fn),
+            "external_access_integrations": extension_fn.external_access_integrations or [],
+            "secrets": extension_fn.secrets or {},
+        }
+
+        if extension_fn.object_type.name == "PROCEDURE" and extension_fn.execute_as is not None:
+            extension_fn_json['execute_as_caller'] = (extension_fn.execute_as == 'caller')
+
+        if extension_fn.native_app_params is not None:
+            schema = extension_fn.native_app_params.get("schema")
+            if schema is not None:
+                extension_fn_json["schema"] = schema
+            app_roles = extension_fn.native_app_params.get("application_roles")
+            if app_roles is not None:
+                extension_fn_json["application_roles"] = app_roles
+
+        return extension_fn_json
+
+    def __snowflake_internal_collect_extension_fn(
+        collected_extension_fn_json_list, extension_function_properties
+    ):
+        extension_fn_json = __snowflake_internal_extension_fn_to_json(extension_function_properties)
+        if extension_fn_json: # Do not append if extension_fn_json is None
+            collected_extension_fn_json_list.append(extension_fn_json)
+        return False
+
+    return functools.partial(
+        __snowflake_internal_collect_extension_fn,
+        __snowflake_global_collected_extension_fn_json,
+    )
+
+snowflake.snowpark.context._is_execution_environment_sandboxed_for_client = (  # noqa: SLF001
+    True
+)
+snowflake.snowpark.context._should_continue_registration = (  # noqa: SLF001
+    __snowflake_internal_create_extension_fn_registration_callback()
+)
+snowflake.snowpark.session._is_execution_environment_sandboxed_for_client = (  # noqa: SLF001
+    True
+)
+
+for global_key in list(globals().keys()):
+    if global_key.startswith("__snowflake_internal"):
+        del globals()[global_key]
+
+del globals()["global_key"] # make sure to clean up the loop variable as well
+
+try:
+    import importlib
+    with contextlib.redirect_stdout(None):
+        with contextlib.redirect_stderr(None):
+            __snowflake_internal_spec = importlib.util.spec_from_file_location("<string>", r"{{py_file}}")
+            __snowflake_internal_module = importlib.util.module_from_spec(__snowflake_internal_spec)
+            __snowflake_internal_spec.loader.exec_module(__snowflake_internal_module)
+except Exception as exc:  # Catch any error
+    print("An exception occurred while executing file: ", exc, file=sys.stderr)
+    sys.exit(1)
+
+
+import json
+print(json.dumps(__snowflake_global_collected_extension_fn_json))

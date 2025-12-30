@@ -58,20 +58,19 @@ CREATE OR REPLACE TABLE RAW_DATA.GRADES (
 );
 
 -- ============================================
--- HYBRID TABLE FOR TEACHER NOTES (OLTP)
--- Fast single-row inserts for real-time note-taking
+-- TEACHER NOTES TABLE
+-- Note: Using standard table (Hybrid Tables require non-trial account)
+-- For production, convert to HYBRID TABLE for <100ms writes
 -- ============================================
 
-CREATE OR REPLACE HYBRID TABLE APP.TEACHER_NOTES (
+CREATE OR REPLACE TABLE APP.TEACHER_NOTES (
     note_id INT AUTOINCREMENT PRIMARY KEY,
     student_id VARCHAR(20),
     teacher_id VARCHAR(20),
     note_text VARCHAR(2000),
     note_category VARCHAR(50), -- 'Academic', 'Behavioral', 'Social', 'Health'
     sentiment_score FLOAT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP(),
-    INDEX idx_student (student_id),
-    INDEX idx_teacher (teacher_id)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP()
 );
 
 -- ============================================
