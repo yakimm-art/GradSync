@@ -4,9 +4,12 @@
 GradSync is a Snowflake Native App that proactively identifies at-risk students using AI-driven interventions and provides actionable Success Plans for educators. The goal is to "close the gap between data and graduation" by transforming dead data into timely action.
 
 ## Tech Stack
-- **Database**: Snowflake (Dynamic Tables, Hybrid Tables, Snowpipe)
-- **Frontend**: Streamlit in Snowflake
-- **AI**: Snowflake Cortex (SENTIMENT, COMPLETE, TRANSLATE)
+- **Platform**: Snowflake Native App (all processing inside Snowflake)
+- **Frontend**: Streamlit in Snowflake (browser-based, zero install)
+- **Database**: Snowflake Standard Tables (OLAP) + Hybrid Tables (OLTP)
+- **AI/ML**: Snowflake Cortex (SENTIMENT, COMPLETE, TRANSLATE)
+- **Data Pipeline**: Dynamic Tables (auto-refresh), Snowpipe (continuous ingestion), Streams + Tasks (CDC)
+- **Languages**: SQL (data layer), Python (Streamlit app)
 - **Data Formats**: CSV, Excel, JSON (for API ingestion)
 
 ## Project Conventions

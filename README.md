@@ -14,6 +14,60 @@ GradSync "syncs" school data with AI-driven interventions. It identifies student
 
 ---
 
+## Tech Stack
+
+| Layer | Technology | Purpose |
+|-------|------------|---------|
+| **Platform** | Snowflake Native App | Single secure environment, no data leaves Snowflake |
+| **Frontend** | Streamlit in Snowflake | Browser-based UI, zero installation for teachers |
+| **Database** | Snowflake (Standard + Hybrid Tables) | OLAP analytics + OLTP real-time writes |
+| **AI/ML** | Snowflake Cortex | Sentiment analysis, text generation, translation |
+| **Data Pipeline** | Dynamic Tables + Snowpipe | Auto-refresh analytics, continuous ingestion |
+| **Language** | SQL + Python | SQL for data layer, Python for Streamlit app |
+
+### Why This Stack?
+
+**100% Snowflake** - Everything runs inside Snowflake. No external APIs, no data exports, no compliance headaches. Student data stays protected (FERPA).
+
+**Zero Infrastructure** - Teachers open a browser. That's it. No drivers, plugins, or IT tickets.
+
+**Built-in AI** - Cortex functions are SQL-callable. No ML ops, no model hosting, no API keys.
+
+```
+┌────────────────────────────────────────────────────────────┐
+│                    SNOWFLAKE PLATFORM                       │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
+│  │  Streamlit   │  │   Cortex AI  │  │   Snowpipe   │      │
+│  │  (Frontend)  │  │  (ML/NLP)    │  │  (Ingestion) │      │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘      │
+│         │                 │                 │               │
+│         ▼                 ▼                 ▼               │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │              Snowflake Data Layer                    │   │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  │   │
+│  │  │ Raw Tables  │  │  Dynamic    │  │   Hybrid    │  │   │
+│  │  │ (Source)    │  │  Tables     │  │   Tables    │  │   │
+│  │  │             │  │ (Analytics) │  │   (OLTP)    │  │   │
+│  │  └─────────────┘  └─────────────┘  └─────────────┘  │   │
+│  └─────────────────────────────────────────────────────┘   │
+└────────────────────────────────────────────────────────────┘
+```
+
+### Key Snowflake Features Used
+
+| Feature | What It Does | Why We Use It |
+|---------|--------------|---------------|
+| **Dynamic Tables** | Auto-refresh materialized views | Student 360 view updates without manual ETL |
+| **Hybrid Tables** | OLTP-optimized storage | Sub-100ms teacher note saves |
+| **Snowpipe** | Continuous data loading | District systems push data automatically |
+| **Streams + Tasks** | Change data capture + scheduling | Process new attendance events in real-time |
+| **Cortex SENTIMENT** | NLP sentiment scoring | Detect negative teacher notes as risk signal |
+| **Cortex COMPLETE** | LLM text generation | Generate personalized Success Plans |
+| **Cortex TRANSLATE** | Multi-language translation | Parent outreach in native language |
+| **Data Metric Functions** | Data quality monitoring | Alert on null IDs, missing records |
+
+---
+
 ## Technical Architecture
 
 ### A. The Data Pipeline (The "Sync")
