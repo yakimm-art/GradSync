@@ -1,0 +1,47 @@
+[
+  {
+    "event_id": "GRD-2024-001",
+    "student_id": "STU001",
+    "course": "Algebra I",
+    "assignment": "Chapter 5 Quiz",
+    "score": 85.5,
+    "max_score": 100,
+    "date": "2024-12-30"
+  },
+  {
+    "event_id": "GRD-2024-002",
+    "student_id": "STU002",
+    "course": "English Literature",
+    "assignment": "Essay: The Great Gatsby",
+    "score": 92.0,
+    "max_score": 100,
+    "date": "2024-12-30"
+  },
+  {
+    "event_id": "GRD-2024-003",
+    "student_id": "STU003",
+    "course": "Biology",
+    "assignment": "Lab Report: Cell Division",
+    "score": 78.5,
+    "max_score": 100,
+    "date": "2024-12-29"
+  },
+  {
+    "event_id": "GRD-2024-004",
+    "student_id": "STU001",
+    "course": "History",
+    "assignment": "World War II Timeline",
+    "score": 45.0,
+    "max_score": 50,
+    "date": "2024-12-28"
+  },
+  {
+    "event_id": "GRD-2024-005",
+    "student_id": "STU004",
+    "course": "Algebra I",
+    "assignment": "Chapter 5 Quiz",
+    "score": 62.0,
+    "max_score": 100,
+    "date": "2024-12-30"
+  }
+]

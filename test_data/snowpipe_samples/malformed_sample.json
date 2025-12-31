@@ -1,0 +1,19 @@
+[
+  {
+    "event_id": "BAD-001",
+    "student_id": "STU001",
+    "timestamp": "2024-12-30T08:15:00Z",
+    "type": "check_in"
+    "location": "Missing comma above"
+  },
+  {
+    "event_id": "BAD-002",
+    "student_id": null,
+    "timestamp": "invalid-date",
+    "type": "check_in",
+    "location": "Invalid timestamp and null student_id"
+  },
+  {
+    "event_id": "BAD-003"
+    "incomplete": "missing closing brace and comma"
+]

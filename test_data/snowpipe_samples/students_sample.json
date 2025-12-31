@@ -1,0 +1,50 @@
+[
+  {
+    "event_id": "STU-2024-001",
+    "student_id": "STU005",
+    "first_name": "Maria",
+    "last_name": "Garcia",
+    "grade_level": 10,
+    "parent_email": "garcia.family@email.com",
+    "parent_language": "Spanish",
+    "event_type": "create"
+  },
+  {
+    "event_id": "STU-2024-002",
+    "student_id": "STU001",
+    "first_name": "John",
+    "last_name": "Smith",
+    "grade_level": 9,
+    "parent_email": "smith.parents@email.com",
+    "parent_language": "English",
+    "event_type": "update"
+  },
+  {
+    "event_id": "STU-2024-003",
+    "student_id": "STU006",
+    "first_name": "Wei",
+    "last_name": "Chen",
+    "grade_level": 11,
+    "parent_email": "chen.family@email.com",
+    "parent_language": "Chinese",
+    "event_type": "create"
+  },
+  {
+    "event_id": "STU-2024-004",
+    "student_id": "STU003",
+    "first_name": "Ahmed",
+    "last_name": "Hassan",
+    "grade_level": 10,
+    "parent_email": "hassan.family@email.com",
+    "event_type": "transfer"
+  },
+  {
+    "event_id": "STU-2024-005",
+    "student_id": "STU007",
+    "first_name": "Emma",
+    "last_name": "Johnson",
+    "grade_level": 9,
+    "parent_email": "johnson.parents@email.com",
+    "event_type": "create"
+  }
+]

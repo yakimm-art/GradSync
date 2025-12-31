@@ -1,0 +1,23 @@
+[
+  {
+    "event_id": "ATT-TEST-001",
+    "student_id": "STU001",
+    "timestamp": "2024-12-31T08:15:00Z",
+    "type": "check_in",
+    "location": "Main Entrance"
+  },
+  {
+    "event_id": "ATT-TEST-002",
+    "student_id": "STU002",
+    "timestamp": "2024-12-31T08:22:00Z",
+    "type": "late_arrival",
+    "location": "Side Door"
+  },
+  {
+    "event_id": "ATT-TEST-003",
+    "student_id": "STU003",
+    "timestamp": "2024-12-31T09:00:00Z",
+    "type": "no_show",
+    "location": "Homeroom"
+  }
+]

@@ -249,6 +249,66 @@ st.markdown("""
         color: #eab308;
     }
     
+    .badge-blue {
+        background: rgba(59, 130, 246, 0.15);
+        color: #3b82f6;
+    }
+    
+    /* Welcome banner */
+    .welcome-banner {
+        background: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(34, 197, 94, 0.05) 100%);
+        border: 1px solid rgba(34, 197, 94, 0.2);
+        border-radius: 12px;
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    /* Info tooltip */
+    .info-tip {
+        background: rgba(59, 130, 246, 0.1);
+        border: 1px solid rgba(59, 130, 246, 0.2);
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        margin: 0.5rem 0;
+        font-size: 0.85rem;
+        color: #93c5fd;
+    }
+    
+    /* Help text */
+    .help-text {
+        color: #606060;
+        font-size: 0.8rem;
+        margin-top: 0.25rem;
+    }
+    
+    /* Empty state */
+    .empty-state {
+        text-align: center;
+        padding: 2rem;
+        color: #606060;
+    }
+    
+    .empty-state-icon {
+        font-size: 2.5rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    /* Action card */
+    .action-card {
+        background: #111111;
+        border: 1px solid #1a1a1a;
+        border-radius: 10px;
+        padding: 1rem;
+        text-align: center;
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+    
+    .action-card:hover {
+        border-color: rgba(34, 197, 94, 0.3);
+        background: rgba(34, 197, 94, 0.05);
+    }
+    
     /* Student row */
     .student-row {
         display: flex;
@@ -448,7 +508,7 @@ with nav_col:
         ("🏠", "Overview", "dashboard"),
         ("📊", "Analytics", "analytics"),
         ("📝", "Observations", "observation"),
-        ("📤", "Upload", "upload"),
+        ("📤", "Import Data", "upload"),
         ("🎯", "Success Plans", "plans"),
     ]
     
@@ -489,14 +549,27 @@ with main_col:
     page = st.session_state.page
     
     # ============================================
-    # PAGE: DASHBOARD / OVERVIEW
+    # PAGE: OVERVIEW (Quick Summary)
     # ============================================
     
-    if page == "dashboard" or page == "analytics":
-        st.markdown('<div class="page-header">📊 Student Risk Dashboard</div>', unsafe_allow_html=True)
-        st.markdown('<div class="page-subtitle">Real-time insights powered by Dynamic Tables & Cortex AI</div>', unsafe_allow_html=True)
+    if page == "dashboard":
+        st.markdown('<div class="page-header">🏠 Welcome to GradSync</div>', unsafe_allow_html=True)
+        st.markdown('<div class="page-subtitle">Your student success dashboard</div>', unsafe_allow_html=True)
         
-        # Metrics
+        # Welcome banner with guidance
+        st.markdown("""
+        <div class="welcome-banner">
+            <div style="display: flex; align-items: flex-start; gap: 12px;">
+                <span style="font-size: 1.5rem;">👋</span>
+                <div>
+                    <div style="color: #22c55e; font-weight: 500; margin-bottom: 0.25rem;">Good to see you!</div>
+                    <div style="color: #a0a0a0; font-size: 0.85rem;">Here's a quick look at how your students are doing. Students flagged as "at-risk" may need extra support based on their attendance and grades.</div>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Metrics with explanations
         try:
             metrics = get_metrics()
             
@@ -554,7 +627,7 @@ with main_col:
                 at_risk_df = get_at_risk_students()
                 
                 if not at_risk_df.empty:
-                    for _, student in at_risk_df.head(8).iterrows():
+                    for _, student in at_risk_df.head(5).iterrows():
                         risk_class = "critical" if student['RISK_SCORE'] >= 70 else "high" if student['RISK_SCORE'] >= 50 else "moderate"
                         
                         st.markdown(f"""
@@ -563,10 +636,9 @@ with main_col:
                             <span class="student-name">{student['STUDENT_NAME']}</span>
                             <span class="student-info">Grade {int(student['GRADE_LEVEL'])}</span>
                             <span class="student-info">Risk: {student['RISK_SCORE']}</span>
-                            <span class="student-info">Att: {student['ATTENDANCE_RATE']}%</span>
-                            <span class="student-info">GPA: {student['CURRENT_GPA']:.1f}</span>
                         </div>
                         """, unsafe_allow_html=True)
+                    st.markdown('<div style="text-align: center; padding-top: 0.5rem;"><a href="#" style="color: #22c55e; font-size: 0.85rem;">View all in Analytics →</a></div>', unsafe_allow_html=True)
                 else:
                     st.success("🎉 All students are on track!")
             except Exception as e:
@@ -588,7 +660,7 @@ with main_col:
                     SELECT s.first_name, n.note_category, n.sentiment_score
                     FROM APP.TEACHER_NOTES n
                     JOIN RAW_DATA.STUDENTS s ON n.student_id = s.student_id
-                    ORDER BY n.created_at DESC LIMIT 6
+                    ORDER BY n.created_at DESC LIMIT 5
                 """).to_pandas()
                 
                 if not recent.empty:
@@ -601,34 +673,280 @@ with main_col:
                 st.caption("Waiting for activity...")
             
             st.markdown("</div>", unsafe_allow_html=True)
+            
+            # Quick actions
+            st.markdown("""
+            <div class="panel" style="margin-top: 1rem;">
+                <div class="panel-title" style="margin-bottom: 0.75rem;">Quick Actions</div>
+            """, unsafe_allow_html=True)
+            
+            if st.button("📝 Log Observation", key="quick_obs", use_container_width=True):
+                st.session_state.page = "observation"
+                st.rerun()
+            if st.button("📤 Upload Data", key="quick_upload", use_container_width=True):
+                st.session_state.page = "upload"
+                st.rerun()
+            
+            st.markdown("</div>", unsafe_allow_html=True)
+
+    # ============================================
+    # PAGE: ANALYTICS (Detailed Charts & Trends)
+    # ============================================
+    
+    elif page == "analytics":
+        st.markdown('<div class="page-header">📊 Analytics</div>', unsafe_allow_html=True)
+        st.markdown('<div class="page-subtitle">Detailed insights and trends</div>', unsafe_allow_html=True)
+        
+        # Metrics row
+        try:
+            metrics = get_metrics()
+            
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                st.markdown(f'<div class="metric-box"><div class="metric-label">Total Students</div><div class="metric-value">{metrics["TOTAL_STUDENTS"]}</div></div>', unsafe_allow_html=True)
+            with col2:
+                st.markdown(f'<div class="metric-box"><div class="metric-label">Critical Risk</div><div class="metric-value red">{metrics["CRITICAL"]}</div></div>', unsafe_allow_html=True)
+            with col3:
+                st.markdown(f'<div class="metric-box"><div class="metric-label">High Risk</div><div class="metric-value yellow">{metrics["HIGH_RISK"]}</div></div>', unsafe_allow_html=True)
+            with col4:
+                st.markdown(f'<div class="metric-box"><div class="metric-label">Avg GPA</div><div class="metric-value">{metrics["AVG_GPA"]}</div></div>', unsafe_allow_html=True)
+        except Exception as e:
+            st.error(f"Error loading metrics: {e}")
+        
+        st.markdown("<hr>", unsafe_allow_html=True)
+        
+        # Full at-risk student list
+        st.markdown("""
+        <div class="panel">
+            <div class="panel-header">
+                <span class="panel-title">All At-Risk Students</span>
+                <span class="badge badge-red">Requires Action</span>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        try:
+            at_risk_df = get_at_risk_students()
+            
+            if not at_risk_df.empty:
+                for _, student in at_risk_df.iterrows():
+                    risk_class = "critical" if student['RISK_SCORE'] >= 70 else "high" if student['RISK_SCORE'] >= 50 else "moderate"
+                    
+                    st.markdown(f"""
+                    <div class="student-row">
+                        <div class="risk-dot {risk_class}"></div>
+                        <span class="student-name">{student['STUDENT_NAME']}</span>
+                        <span class="student-info">Grade {int(student['GRADE_LEVEL'])}</span>
+                        <span class="student-info">Risk: {student['RISK_SCORE']}</span>
+                        <span class="student-info">Att: {student['ATTENDANCE_RATE']}%</span>
+                        <span class="student-info">GPA: {student['CURRENT_GPA']:.1f}</span>
+                    </div>
+                    """, unsafe_allow_html=True)
+            else:
+                st.success("🎉 All students are on track!")
+        except Exception as e:
+            st.warning(f"Could not load students: {e}")
+        
+        st.markdown("</div>", unsafe_allow_html=True)
+        
+        st.markdown("<hr>", unsafe_allow_html=True)
+        
+        # Charts section
+        col_left, col_right = st.columns(2)
+        
+        with col_left:
+            st.markdown("""
+            <div class="panel">
+                <div class="panel-title">Risk Distribution</div>
+                <div class="help-text">Number of students by risk level</div>
+            """, unsafe_allow_html=True)
+            
+            try:
+                risk_dist = session.sql("""
+                    SELECT 
+                        CASE 
+                            WHEN risk_score >= 70 THEN 'Critical'
+                            WHEN risk_score >= 50 THEN 'High'
+                            WHEN risk_score >= 30 THEN 'Moderate'
+                            ELSE 'Low'
+                        END as risk_level,
+                        COUNT(*) as count
+                    FROM ANALYTICS.STUDENT_360_VIEW
+                    GROUP BY risk_level
+                """).to_pandas()
+                
+                if not risk_dist.empty:
+                    risk_order = ['Critical', 'High', 'Moderate', 'Low']
+                    risk_dist['RISK_LEVEL'] = pd.Categorical(risk_dist['RISK_LEVEL'], categories=risk_order, ordered=True)
+                    risk_dist = risk_dist.sort_values('RISK_LEVEL')
+                    st.bar_chart(risk_dist.set_index('RISK_LEVEL')['COUNT'], color='#22c55e')
+                else:
+                    st.caption("No data available")
+            except:
+                st.caption("Chart unavailable")
+            
+            st.markdown("</div>", unsafe_allow_html=True)
+        
+        with col_right:
+            st.markdown("""
+            <div class="panel">
+                <div class="panel-title">Attendance by Grade</div>
+                <div class="help-text">Average attendance rate per grade level</div>
+            """, unsafe_allow_html=True)
+            
+            try:
+                att_by_grade = session.sql("""
+                    SELECT 
+                        CAST(grade_level AS VARCHAR) as grade,
+                        ROUND(AVG(attendance_rate), 1) as avg_attendance
+                    FROM ANALYTICS.STUDENT_360_VIEW
+                    GROUP BY grade_level
+                    ORDER BY grade_level
+                """).to_pandas()
+                
+                if not att_by_grade.empty:
+                    st.bar_chart(att_by_grade.set_index('GRADE')['AVG_ATTENDANCE'], color='#3b82f6')
+                else:
+                    st.caption("No data available")
+            except:
+                st.caption("Chart unavailable")
+            
+            st.markdown("</div>", unsafe_allow_html=True)
+        
+        # Second row of charts
+        col_left2, col_right2 = st.columns(2)
+        
+        with col_left2:
+            st.markdown("""
+            <div class="panel">
+                <div class="panel-title">GPA Distribution</div>
+                <div class="help-text">Students grouped by GPA range</div>
+            """, unsafe_allow_html=True)
+            
+            try:
+                gpa_dist = session.sql("""
+                    SELECT 
+                        CASE 
+                            WHEN current_gpa >= 3.5 THEN 'A (3.5+)'
+                            WHEN current_gpa >= 3.0 THEN 'B (3.0-3.5)'
+                            WHEN current_gpa >= 2.0 THEN 'C (2.0-3.0)'
+                            WHEN current_gpa >= 1.0 THEN 'D (1.0-2.0)'
+                            ELSE 'F (<1.0)'
+                        END as gpa_range,
+                        COUNT(*) as count
+                    FROM ANALYTICS.STUDENT_360_VIEW
+                    GROUP BY gpa_range
+                """).to_pandas()
+                
+                if not gpa_dist.empty:
+                    st.bar_chart(gpa_dist.set_index('GPA_RANGE')['COUNT'], color='#8b5cf6')
+                else:
+                    st.caption("No data available")
+            except:
+                st.caption("Chart unavailable")
+            
+            st.markdown("</div>", unsafe_allow_html=True)
+        
+        with col_right2:
+            st.markdown("""
+            <div class="panel">
+                <div class="panel-title">Performance Overview</div>
+                <div class="help-text">Key metrics at a glance</div>
+            """, unsafe_allow_html=True)
+            
+            try:
+                perf_data = session.sql("""
+                    SELECT 
+                        ROUND(AVG(attendance_rate), 1) as avg_attendance,
+                        ROUND(AVG(current_gpa), 2) as avg_gpa,
+                        COUNT(CASE WHEN risk_score >= 50 THEN 1 END) as at_risk_count,
+                        COUNT(*) as total
+                    FROM ANALYTICS.STUDENT_360_VIEW
+                """).collect()[0]
+                
+                # Display as metrics
+                m1, m2 = st.columns(2)
+                with m1:
+                    att_val = float(perf_data['AVG_ATTENDANCE'])
+                    att_color = "green" if att_val >= 90 else "yellow" if att_val >= 80 else "red"
+                    st.markdown(f"""
+                    <div class="metric-box" style="text-align: center;">
+                        <div class="metric-label">Avg Attendance</div>
+                        <div class="metric-value {att_color}">{att_val}%</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                with m2:
+                    gpa_val = float(perf_data['AVG_GPA'])
+                    st.markdown(f"""
+                    <div class="metric-box" style="text-align: center;">
+                        <div class="metric-label">Avg GPA</div>
+                        <div class="metric-value">{gpa_val}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                st.markdown("<br>", unsafe_allow_html=True)
+                
+                at_risk = int(perf_data['AT_RISK_COUNT'])
+                total = int(perf_data['TOTAL'])
+                on_track = total - at_risk
+                
+                st.markdown(f"""
+                <div style="text-align: center; color: #808080; font-size: 0.85rem;">
+                    <span style="color: #22c55e;">●</span> {on_track} on track &nbsp;&nbsp;
+                    <span style="color: #ef4444;">●</span> {at_risk} at risk
+                </div>
+                """, unsafe_allow_html=True)
+            except:
+                st.caption("Data unavailable")
+            
+            st.markdown("</div>", unsafe_allow_html=True)
 
     # ============================================
     # PAGE: LOG OBSERVATION
     # ============================================
     
     elif page == "observation":
-        st.markdown('<div class="page-header">📝 Log Student Observation</div>', unsafe_allow_html=True)
-        st.markdown('<div class="page-subtitle">Quick note entry with AI sentiment analysis</div>', unsafe_allow_html=True)
+        st.markdown('<div class="page-header">📝 Student Observations</div>', unsafe_allow_html=True)
+        st.markdown('<div class="page-subtitle">Record notes about student progress and behavior</div>', unsafe_allow_html=True)
+        
+        # Guidance banner
+        st.markdown("""
+        <div class="welcome-banner">
+            <div style="display: flex; align-items: flex-start; gap: 12px;">
+                <span style="font-size: 1.5rem;">💡</span>
+                <div>
+                    <div style="color: #22c55e; font-weight: 500; margin-bottom: 0.25rem;">How it works</div>
+                    <div style="color: #a0a0a0; font-size: 0.85rem;">Write a note about any student. Our AI will automatically analyze the sentiment (positive, neutral, or negative) to help track student wellbeing over time.</div>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
         
         col1, col2 = st.columns([2, 1])
         
         with col1:
+            st.markdown("""
+            <div class="panel">
+                <div class="panel-title" style="margin-bottom: 1rem;">✏️ New Observation</div>
+            """, unsafe_allow_html=True)
+            
             with st.form("observation_form", clear_on_submit=True):
                 try:
                     students_df = get_students()
                     student_options = dict(zip(students_df['STUDENT_NAME'], students_df['STUDENT_ID']))
-                    selected_student = st.selectbox("Select Student", options=list(student_options.keys()))
+                    selected_student = st.selectbox("Which student?", options=list(student_options.keys()), help="Select the student you want to write about")
                 except:
                     selected_student = st.text_input("Student ID")
                     student_options = {selected_student: selected_student}
                 
-                category = st.selectbox("Category", ["Academic", "Behavioral", "Social", "Health", "General"])
-                note_text = st.text_area("Observation Note", placeholder="Enter your observation...", height=120)
+                category = st.selectbox("What type of observation?", ["Academic", "Behavioral", "Social", "Health", "General"], help="This helps organize your notes")
+                note_text = st.text_area("Your observation", placeholder="Example: Maria showed great improvement in today's math quiz. She stayed focused and asked good questions.", height=120)
                 
-                submitted = st.form_submit_button("💾 Save & Analyze", use_container_width=True)
+                st.markdown('<div class="help-text">💡 Be specific - include what happened, when, and any context that might be helpful.</div>', unsafe_allow_html=True)
+                
+                submitted = st.form_submit_button("💾 Save Observation", use_container_width=True)
                 
                 if submitted and note_text and selected_student:
-                    with st.spinner("Analyzing with Cortex AI..."):
+                    with st.spinner("Saving and analyzing..."):
                         try:
                             start_time = time.time()
                             sentiment = analyze_sentiment(note_text)
@@ -669,35 +987,62 @@ with main_col:
 
 
     # ============================================
-    # PAGE: UPLOAD DATA
+    # PAGE: UPLOAD DATA (Teacher Friendly)
     # ============================================
     
     elif page == "upload":
-        st.markdown('<div class="page-header">📤 Bulk Data Upload</div>', unsafe_allow_html=True)
-        st.markdown('<div class="page-subtitle">Import data from Canvas, PowerSchool, or CSV exports</div>', unsafe_allow_html=True)
+        st.markdown('<div class="page-header">📤 Upload Data</div>', unsafe_allow_html=True)
+        st.markdown('<div class="page-subtitle">Import student records, attendance, or grades from your files</div>', unsafe_allow_html=True)
+        
+        # Friendly intro
+        st.markdown("""
+        <div class="panel" style="background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%); border-color: rgba(34, 197, 94, 0.2);">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 1.5rem;">💡</span>
+                <div>
+                    <div style="color: #22c55e; font-weight: 500;">Easy Import</div>
+                    <div style="color: #808080; font-size: 0.85rem;">Upload CSV files from Excel, Google Sheets, or your school system exports.</div>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown("<br>", unsafe_allow_html=True)
         
         col1, col2 = st.columns([2, 1])
         
         with col1:
             data_type = st.selectbox(
-                "Data Type",
+                "What type of data are you uploading?",
                 ["students", "attendance", "grades"],
-                format_func=lambda x: {"students": "📚 Student Roster", "attendance": "📅 Attendance Records", "grades": "📝 Grade Data"}[x]
+                format_func=lambda x: {
+                    "students": "👥 Student Roster (names, grade levels, contact info)", 
+                    "attendance": "📅 Attendance Records (present, absent, tardy)", 
+                    "grades": "📝 Grade Data (scores and assignments)"
+                }[x]
             )
             
-            uploaded_file = st.file_uploader("Upload File", type=['csv', 'xlsx'])
+            st.markdown('<div style="color: #808080; font-size: 0.85rem; margin: 0.5rem 0 1rem 0;">Supported formats: CSV, Excel (.xlsx)</div>', unsafe_allow_html=True)
+            
+            uploaded_file = st.file_uploader("Choose your file", type=['csv', 'xlsx'], label_visibility="collapsed")
             
             if uploaded_file:
                 try:
                     df = pd.read_csv(uploaded_file) if uploaded_file.name.endswith('.csv') else pd.read_excel(uploaded_file)
                     
-                    c1, c2 = st.columns(2)
-                    c1.metric("Rows", len(df))
-                    c2.metric("Columns", len(df.columns))
+                    st.markdown(f"""
+                    <div class="panel" style="margin: 1rem 0;">
+                        <div style="color: #22c55e; font-weight: 500;">✓ File loaded: {uploaded_file.name}</div>
+                        <div style="color: #808080; font-size: 0.85rem; margin-top: 0.25rem;">{len(df)} records found with {len(df.columns)} columns</div>
+                    </div>
+                    """, unsafe_allow_html=True)
                     
-                    st.dataframe(df.head(10), use_container_width=True)
+                    with st.expander("Preview data", expanded=True):
+                        st.dataframe(df.head(10), use_container_width=True)
+                        if len(df) > 10:
+                            st.caption(f"Showing first 10 of {len(df)} records")
                     
-                    if st.button("🚀 Import Data", use_container_width=True):
+                    if st.button("📥 Import Data", use_container_width=True, type="primary"):
                         with st.spinner("Importing..."):
                             try:
                                 batch_id = str(uuid.uuid4())[:8]
@@ -712,30 +1057,87 @@ with main_col:
                                     """).collect()
                                     progress.progress((i + 1) / len(df))
                                 
-                                st.success(f"✅ Imported {len(df)} records!")
+                                st.success(f"🎉 Success! {len(df)} records imported.")
                                 st.balloons()
+                                st.info("💡 Data will appear in reports within a few minutes.")
                                 st.cache_data.clear()
                             except Exception as e:
-                                st.error(f"Import failed: {e}")
+                                st.error("Import failed. Please check your file format.")
+                                with st.expander("Technical details"):
+                                    st.code(str(e))
                 except Exception as e:
-                    st.error(f"Error reading file: {e}")
+                    st.error("Could not read this file. Please make sure it's a valid CSV or Excel file.")
         
         with col2:
-            st.markdown('<div class="panel-title">Expected Format</div>', unsafe_allow_html=True)
+            st.markdown("""
+            <div class="panel">
+                <div class="panel-title" style="margin-bottom: 1rem;">📋 Required Columns</div>
+            """, unsafe_allow_html=True)
+            
             if data_type == "students":
+                st.markdown("""
+                <div style="color: #808080; font-size: 0.85rem; margin-bottom: 0.75rem;">
+                    • <strong>student_id</strong> - Unique ID<br>
+                    • <strong>first_name</strong><br>
+                    • <strong>last_name</strong><br>
+                    • <strong>grade_level</strong> - (9, 10, etc.)
+                </div>
+                """, unsafe_allow_html=True)
                 st.code("student_id,first_name,last_name,grade_level\nSTU001,John,Doe,9", language="csv")
             elif data_type == "attendance":
-                st.code("student_id,date,status,period\nSTU001,2024-12-01,Present,1", language="csv")
+                st.markdown("""
+                <div style="color: #808080; font-size: 0.85rem; margin-bottom: 0.75rem;">
+                    • <strong>student_id</strong><br>
+                    • <strong>date</strong> - (YYYY-MM-DD)<br>
+                    • <strong>status</strong> - Present/Absent/Tardy<br>
+                    • <strong>period</strong> - (optional)
+                </div>
+                """, unsafe_allow_html=True)
+                st.code("student_id,date,status,period\nSTU001,2024-12-30,Present,1", language="csv")
             else:
-                st.code("student_id,course,assignment,score,max_score\nSTU001,Algebra,Quiz 1,85,100", language="csv")
+                st.markdown("""
+                <div style="color: #808080; font-size: 0.85rem; margin-bottom: 0.75rem;">
+                    • <strong>student_id</strong><br>
+                    • <strong>course</strong> - Course name<br>
+                    • <strong>assignment</strong><br>
+                    • <strong>score</strong> / <strong>max_score</strong>
+                </div>
+                """, unsafe_allow_html=True)
+                st.code("student_id,course,assignment,score,max_score\nSTU001,Algebra I,Quiz 1,85,100", language="csv")
+            
+            st.markdown("</div>", unsafe_allow_html=True)
+            
+            st.markdown("""
+            <div class="panel" style="margin-top: 1rem;">
+                <div class="panel-title" style="margin-bottom: 0.5rem;">💡 Tips</div>
+                <div style="color: #606060; font-size: 0.8rem;">
+                    • Excel: File → Save As → CSV<br>
+                    • Google Sheets: File → Download → CSV<br>
+                    • Column names must match exactly
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
 
     # ============================================
     # PAGE: SUCCESS PLANS
     # ============================================
     
     elif page == "plans":
-        st.markdown('<div class="page-header">🎯 AI-Powered Success Plans</div>', unsafe_allow_html=True)
-        st.markdown('<div class="page-subtitle">Personalized intervention strategies generated by Cortex AI</div>', unsafe_allow_html=True)
+        st.markdown('<div class="page-header">🎯 Success Plans</div>', unsafe_allow_html=True)
+        st.markdown('<div class="page-subtitle">AI-powered intervention strategies for at-risk students</div>', unsafe_allow_html=True)
+        
+        # Guidance banner
+        st.markdown("""
+        <div class="welcome-banner">
+            <div style="display: flex; align-items: flex-start; gap: 12px;">
+                <span style="font-size: 1.5rem;">🤖</span>
+                <div>
+                    <div style="color: #22c55e; font-weight: 500; margin-bottom: 0.25rem;">AI-Powered Recommendations</div>
+                    <div style="color: #a0a0a0; font-size: 0.85rem;">Select a student below and click "Generate Success Plan" to get personalized intervention strategies based on their attendance, grades, and risk factors.</div>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
         
         try:
             at_risk_df = get_at_risk_students()
@@ -744,52 +1146,69 @@ with main_col:
                 col1, col2 = st.columns([1, 2])
                 
                 with col1:
-                    st.markdown('<div class="panel-title">Select Student</div>', unsafe_allow_html=True)
-                    selected = st.selectbox("Student", options=at_risk_df['STUDENT_NAME'].tolist(), label_visibility="collapsed")
+                    st.markdown("""
+                    <div class="panel">
+                        <div class="panel-title" style="margin-bottom: 1rem;">👤 Select Student</div>
+                    """, unsafe_allow_html=True)
+                    
+                    selected = st.selectbox("Choose a student", options=at_risk_df['STUDENT_NAME'].tolist(), label_visibility="collapsed", help="Students shown here have been flagged as at-risk")
                     student_data = at_risk_df[at_risk_df['STUDENT_NAME'] == selected].iloc[0].to_dict()
                     
                     color = "red" if student_data['RISK_SCORE'] >= 70 else "yellow" if student_data['RISK_SCORE'] >= 50 else ""
+                    risk_label = "Critical" if student_data['RISK_SCORE'] >= 70 else "High" if student_data['RISK_SCORE'] >= 50 else "Moderate"
                     
                     st.markdown(f"""
-                    <div class="metric-box" style="margin-top: 1rem;">
-                        <div class="metric-label">Risk Score</div>
-                        <div class="metric-value {color}">{student_data['RISK_SCORE']}</div>
+                    <div class="metric-box" style="margin-top: 1rem; text-align: center;">
+                        <div class="metric-label">Risk Level</div>
+                        <div class="metric-value {color}" style="font-size: 1.5rem;">{risk_label}</div>
+                        <div style="color: #606060; font-size: 0.8rem;">Score: {student_data['RISK_SCORE']}</div>
                     </div>
                     """, unsafe_allow_html=True)
                     
-                    st.metric("Attendance", f"{student_data['ATTENDANCE_RATE']}%")
-                    st.metric("GPA", f"{student_data['CURRENT_GPA']:.1f}")
+                    st.markdown("<br>", unsafe_allow_html=True)
+                    
+                    c1, c2 = st.columns(2)
+                    with c1:
+                        st.metric("Attendance", f"{student_data['ATTENDANCE_RATE']}%")
+                    with c2:
+                        st.metric("GPA", f"{student_data['CURRENT_GPA']:.1f}")
+                    
+                    st.markdown("</div>", unsafe_allow_html=True)
                 
                 with col2:
-                    if st.button("🤖 Generate Success Plan", use_container_width=True):
-                        with st.spinner("Cortex AI analyzing..."):
+                    st.markdown("""
+                    <div class="panel">
+                        <div class="panel-title" style="margin-bottom: 1rem;">📋 Intervention Plan</div>
+                    """, unsafe_allow_html=True)
+                    
+                    if st.button("🤖 Generate Success Plan", use_container_width=True, type="primary"):
+                        with st.spinner("AI is analyzing student data and generating recommendations..."):
                             try:
                                 plan = generate_success_plan(student_data)
                                 
                                 st.markdown("""
-                                <div class="panel-header">
-                                    <span class="panel-title">Recommended Interventions</span>
-                                    <span class="badge badge-green">AI Generated</span>
+                                <div style="background: rgba(34, 197, 94, 0.1); border-radius: 8px; padding: 0.75rem; margin-bottom: 1rem;">
+                                    <span style="color: #22c55e;">✓ Plan generated successfully</span>
                                 </div>
                                 """, unsafe_allow_html=True)
                                 
                                 st.markdown(plan)
                                 
                                 st.markdown("<hr>", unsafe_allow_html=True)
-                                st.markdown('<div class="panel-title">Parent Communication</div>', unsafe_allow_html=True)
+                                st.markdown('<div class="panel-title" style="margin-bottom: 0.75rem;">📧 Contact Parent</div>', unsafe_allow_html=True)
                                 
                                 student_id = student_data.get('STUDENT_ID', '')
                                 parent_lang = get_parent_language(student_id) if student_id else 'English'
                                 
                                 if parent_lang != 'English':
-                                    st.info(f"🌐 Parent's preferred language: **{parent_lang}**")
+                                    st.markdown(f'<div class="info-tip">🌐 This parent prefers communication in <strong>{parent_lang}</strong></div>', unsafe_allow_html=True)
                                 
                                 available_langs = ['English'] + list(SUPPORTED_LANGUAGES.keys())
-                                selected_lang = st.selectbox("Target Language", options=available_langs,
+                                selected_lang = st.selectbox("Translate message to:", options=available_langs,
                                     index=available_langs.index(parent_lang) if parent_lang in available_langs else 0)
                                 
                                 default_msg = f"Dear Parent/Guardian,\n\nI wanted to reach out regarding {selected}'s progress. I'd like to schedule a meeting to discuss strategies we can implement together.\n\nBest regards,\n[Teacher Name]"
-                                message = st.text_area("Message", value=default_msg, height=120)
+                                message = st.text_area("Message to parent", value=default_msg, height=120)
                                 
                                 c1, c2 = st.columns(2)
                                 with c1:
@@ -808,6 +1227,374 @@ with main_col:
                 st.success("🎉 All students are performing well!")
         except Exception as e:
             st.warning(f"Setup required: {e}")
+
+    # ============================================
+    # PAGE: AUTO-SYNC STATUS
+    # ============================================
+    
+    elif page == "autosync":
+        st.markdown('<div class="page-header">🔄 Data Import Center</div>', unsafe_allow_html=True)
+        st.markdown('<div class="page-subtitle">Easily import attendance, grades, and student data into GradSync</div>', unsafe_allow_html=True)
+        
+        # Friendly intro for teachers
+        st.markdown("""
+        <div class="panel" style="background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%); border-color: rgba(34, 197, 94, 0.2);">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 1.5rem;">💡</span>
+                <div>
+                    <div style="color: #22c55e; font-weight: 500;">Quick Import</div>
+                    <div style="color: #808080; font-size: 0.85rem;">Upload data files below to quickly add attendance records, grades, or new students to the system.</div>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        # Data Connection Status (simplified)
+        st.markdown('<div class="panel-title">📊 Connection Status</div>', unsafe_allow_html=True)
+        st.markdown('<div style="color: #606060; font-size: 0.85rem; margin-bottom: 1rem;">Shows whether automatic data feeds from your school systems are active</div>', unsafe_allow_html=True)
+        
+        col1, col2, col3 = st.columns(3)
+        
+        def get_pipe_status(pipe_name):
+            try:
+                result = session.sql(f"SELECT SYSTEM$PIPE_STATUS('RAW_DATA.{pipe_name}') as status").collect()
+                import json
+                status_json = json.loads(result[0]['STATUS'])
+                return {
+                    'state': status_json.get('executionState', 'UNKNOWN'),
+                    'pending': status_json.get('pendingFileCount', 0),
+                    'last_ingestion': status_json.get('lastIngestedTimestamp', 'Never')
+                }
+            except:
+                return {'state': 'NOT_CONFIGURED', 'pending': 0, 'last_ingestion': 'N/A'}
+        
+        pipes = [
+            ('ATTENDANCE_PIPE', 'Attendance', '📅', 'From check-in systems'),
+            ('GRADES_PIPE', 'Grades', '📝', 'From gradebook/LMS'),
+            ('STUDENTS_PIPE', 'Students', '👥', 'From student info system')
+        ]
+        
+        for i, (pipe_name, label, icon, desc) in enumerate(pipes):
+            status = get_pipe_status(pipe_name)
+            state = status['state']
+            
+            if state == 'RUNNING':
+                badge_class = 'badge-green'
+                badge_text = '✓ Connected'
+                status_desc = 'Receiving data automatically'
+            elif state == 'PAUSED':
+                badge_class = 'badge-yellow'
+                badge_text = '⏸ Paused'
+                status_desc = 'Temporarily stopped'
+            elif state == 'NOT_CONFIGURED':
+                badge_class = 'badge-yellow'
+                badge_text = 'Manual Only'
+                status_desc = 'Use file upload below'
+            else:
+                badge_class = 'badge-red'
+                badge_text = '⚠ Issue'
+                status_desc = 'Contact IT support'
+            
+            with [col1, col2, col3][i]:
+                st.markdown(f"""
+                <div class="metric-box" style="text-align: center;">
+                    <div style="font-size: 2rem;">{icon}</div>
+                    <div class="metric-label">{label}</div>
+                    <div class="badge {badge_class}" style="margin-top: 0.5rem;">{badge_text}</div>
+                    <div style="color: #505050; font-size: 0.75rem; margin-top: 0.5rem;">
+                        {status_desc}
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+        
+        st.markdown("<hr>", unsafe_allow_html=True)
+        
+        # Recent Activity (simplified)
+        col_left, col_right = st.columns([2, 1])
+        
+        with col_left:
+            st.markdown("""
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">📥 Recent Imports (Last 24 Hours)</span>
+                    <span class="badge badge-green">Live</span>
+                </div>
+            """, unsafe_allow_html=True)
+            
+            try:
+                metrics_df = session.sql("""
+                    SELECT 
+                        'Attendance' as data_type,
+                        COUNT(*) as records,
+                        MAX(ingested_at) as last_ingestion
+                    FROM RAW_DATA.ATTENDANCE_EVENTS_LANDING
+                    WHERE ingested_at >= DATEADD(hours, -24, CURRENT_TIMESTAMP())
+                    UNION ALL
+                    SELECT 'Grades', COUNT(*), MAX(ingested_at)
+                    FROM RAW_DATA.GRADE_EVENTS_LANDING
+                    WHERE ingested_at >= DATEADD(hours, -24, CURRENT_TIMESTAMP())
+                    UNION ALL
+                    SELECT 'Students', COUNT(*), MAX(ingested_at)
+                    FROM RAW_DATA.STUDENT_EVENTS_LANDING
+                    WHERE ingested_at >= DATEADD(hours, -24, CURRENT_TIMESTAMP())
+                """).to_pandas()
+                
+                if not metrics_df.empty and metrics_df['RECORDS'].sum() > 0:
+                    for _, row in metrics_df.iterrows():
+                        if row['RECORDS'] > 0:
+                            icon = "📅" if row['DATA_TYPE'] == 'Attendance' else "📝" if row['DATA_TYPE'] == 'Grades' else "👥"
+                            st.markdown(f"""
+                            <div class="student-row">
+                                <span style="margin-right: 10px;">{icon}</span>
+                                <span class="student-name">{row['DATA_TYPE']}</span>
+                                <span class="student-info" style="color: #22c55e;">{row['RECORDS']} new records</span>
+                            </div>
+                            """, unsafe_allow_html=True)
+                    if metrics_df['RECORDS'].sum() == 0:
+                        st.markdown('<div style="color: #606060; padding: 1rem;">No new data imported today. Use the upload section below to add data.</div>', unsafe_allow_html=True)
+                else:
+                    st.markdown('<div style="color: #606060; padding: 1rem;">No new data imported today. Use the upload section below to add data.</div>', unsafe_allow_html=True)
+            except Exception as e:
+                st.markdown('<div style="color: #606060; padding: 1rem;">Ready to receive data. Use the upload section below to get started.</div>', unsafe_allow_html=True)
+            
+            st.markdown("</div>", unsafe_allow_html=True)
+        
+        with col_right:
+            st.markdown("""
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">✅ System Health</span>
+                </div>
+            """, unsafe_allow_html=True)
+            
+            try:
+                tasks_df = session.sql("""
+                    SELECT name, state
+                    FROM TABLE(INFORMATION_SCHEMA.TASK_HISTORY(
+                        SCHEDULED_TIME_RANGE_START => DATEADD(hours, -24, CURRENT_TIMESTAMP())
+                    ))
+                    WHERE name LIKE 'PROCESS_%'
+                    ORDER BY scheduled_time DESC
+                    LIMIT 3
+                """).to_pandas()
+                
+                if not tasks_df.empty:
+                    succeeded = (tasks_df['STATE'] == 'SUCCEEDED').sum()
+                    total = len(tasks_df)
+                    if succeeded == total:
+                        st.markdown('<div style="color: #22c55e; padding: 0.5rem;">✓ All systems running smoothly</div>', unsafe_allow_html=True)
+                    else:
+                        st.markdown(f'<div style="color: #eab308; padding: 0.5rem;">⚠ {succeeded}/{total} processes OK</div>', unsafe_allow_html=True)
+                else:
+                    st.markdown('<div style="color: #22c55e; padding: 0.5rem;">✓ System ready</div>', unsafe_allow_html=True)
+            except:
+                st.markdown('<div style="color: #22c55e; padding: 0.5rem;">✓ System ready</div>', unsafe_allow_html=True)
+            
+            st.markdown("</div>", unsafe_allow_html=True)
+        
+        st.markdown("<hr>", unsafe_allow_html=True)
+        
+        # Simplified Error Section
+        try:
+            errors_df = session.sql("""
+                SELECT COUNT(*) as error_count
+                FROM TABLE(INFORMATION_SCHEMA.COPY_HISTORY(
+                    TABLE_NAME => 'ATTENDANCE_EVENTS_LANDING',
+                    START_TIME => DATEADD(days, -7, CURRENT_TIMESTAMP())
+                ))
+                WHERE status = 'LOAD_FAILED'
+            """).collect()
+            
+            if errors_df[0]['ERROR_COUNT'] > 0:
+                st.markdown(f"""
+                <div class="panel" style="border-color: rgba(239, 68, 68, 0.3);">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span style="font-size: 1.5rem;">⚠️</span>
+                        <div>
+                            <div style="color: #ef4444; font-weight: 500;">{errors_df[0]['ERROR_COUNT']} Import Issues</div>
+                            <div style="color: #808080; font-size: 0.85rem;">Some files couldn't be imported. Contact IT if this persists.</div>
+                        </div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+        except:
+            pass  # No errors to show
+        
+        # Main Upload Section - Teacher Friendly
+        st.markdown('<div class="panel-title">📤 Import Data</div>', unsafe_allow_html=True)
+        st.markdown('<div style="color: #606060; font-size: 0.85rem; margin-bottom: 1rem;">Upload a file to add new records to GradSync</div>', unsafe_allow_html=True)
+        
+        col1, col2 = st.columns([2, 1])
+        
+        with col1:
+            test_type = st.selectbox(
+                "What type of data are you importing?",
+                ["attendance", "grades", "students"],
+                format_func=lambda x: {
+                    "attendance": "📅 Attendance Records (who was present/absent)", 
+                    "grades": "📝 Grade Data (scores and assignments)", 
+                    "students": "👥 Student Information (new students or updates)"
+                }[x]
+            )
+            
+            st.markdown('<div style="color: #808080; font-size: 0.85rem; margin: 0.5rem 0 1rem 0;">Upload a JSON file exported from your school system</div>', unsafe_allow_html=True)
+            
+            test_file = st.file_uploader("Choose file", type=['json'], label_visibility="collapsed")
+            
+            if test_file:
+                try:
+                    import json
+                    test_data = json.load(test_file)
+                    data_list = test_data if isinstance(test_data, list) else [test_data]
+                    
+                    st.markdown(f"""
+                    <div class="panel" style="margin: 1rem 0;">
+                        <div style="color: #22c55e; font-weight: 500;">✓ File loaded successfully</div>
+                        <div style="color: #808080; font-size: 0.85rem; margin-top: 0.25rem;">{len(data_list)} record(s) ready to import</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    with st.expander("Preview data"):
+                        st.json(data_list[:3] if len(data_list) > 3 else data_list)
+                        if len(data_list) > 3:
+                            st.caption(f"...and {len(data_list) - 3} more records")
+                    
+                    if st.button("📥 Import Data", use_container_width=True, type="primary"):
+                        with st.spinner("Importing your data..."):
+                            try:
+                                records_inserted = 0
+                                
+                                for record in data_list:
+                                    record_json = json.dumps(record).replace("'", "''")
+                                    
+                                    if test_type == "attendance":
+                                        session.sql(f"""
+                                            INSERT INTO RAW_DATA.ATTENDANCE_EVENTS_LANDING 
+                                            (event_id, student_id, event_timestamp, event_type, location, raw_payload)
+                                            SELECT 
+                                                $1:event_id::VARCHAR,
+                                                $1:student_id::VARCHAR,
+                                                TRY_TO_TIMESTAMP($1:timestamp::VARCHAR),
+                                                $1:type::VARCHAR,
+                                                $1:location::VARCHAR,
+                                                PARSE_JSON('{record_json}')
+                                            FROM (SELECT PARSE_JSON('{record_json}') as $1)
+                                        """).collect()
+                                    elif test_type == "grades":
+                                        session.sql(f"""
+                                            INSERT INTO RAW_DATA.GRADE_EVENTS_LANDING 
+                                            (event_id, student_id, course_name, assignment_name, score, max_score, grade_date, raw_payload)
+                                            SELECT 
+                                                $1:event_id::VARCHAR,
+                                                $1:student_id::VARCHAR,
+                                                $1:course::VARCHAR,
+                                                $1:assignment::VARCHAR,
+                                                TRY_TO_DECIMAL($1:score::VARCHAR, 5, 2),
+                                                TRY_TO_DECIMAL($1:max_score::VARCHAR, 5, 2),
+                                                TRY_TO_DATE($1:date::VARCHAR),
+                                                PARSE_JSON('{record_json}')
+                                            FROM (SELECT PARSE_JSON('{record_json}') as $1)
+                                        """).collect()
+                                    else:  # students
+                                        session.sql(f"""
+                                            INSERT INTO RAW_DATA.STUDENT_EVENTS_LANDING 
+                                            (event_id, student_id, first_name, last_name, grade_level, parent_email, parent_language, event_type, raw_payload)
+                                            SELECT 
+                                                $1:event_id::VARCHAR,
+                                                $1:student_id::VARCHAR,
+                                                $1:first_name::VARCHAR,
+                                                $1:last_name::VARCHAR,
+                                                TRY_TO_NUMBER($1:grade_level::VARCHAR),
+                                                $1:parent_email::VARCHAR,
+                                                COALESCE($1:parent_language::VARCHAR, 'English'),
+                                                $1:event_type::VARCHAR,
+                                                PARSE_JSON('{record_json}')
+                                            FROM (SELECT PARSE_JSON('{record_json}') as $1)
+                                        """).collect()
+                                    records_inserted += 1
+                                
+                                st.success(f"🎉 Success! {records_inserted} records imported.")
+                                st.balloons()
+                                st.info("💡 Data will appear in reports within a few minutes.")
+                            except Exception as e:
+                                st.error(f"Import failed. Please check your file format and try again.")
+                                with st.expander("Technical details"):
+                                    st.code(str(e))
+                except Exception as e:
+                    st.error("This file doesn't appear to be valid JSON. Please check the format.")
+        
+        with col2:
+            st.markdown("""
+            <div class="panel">
+                <div class="panel-title" style="margin-bottom: 1rem;">📋 File Format Help</div>
+            """, unsafe_allow_html=True)
+            
+            if test_type == "attendance":
+                st.markdown("""
+                <div style="color: #808080; font-size: 0.85rem; margin-bottom: 0.75rem;">
+                    <strong>Required fields:</strong><br>
+                    • student_id - Student's ID<br>
+                    • timestamp - Date and time<br>
+                    • type - check_in, late_arrival, or no_show
+                </div>
+                """, unsafe_allow_html=True)
+                st.code('''[{
+  "event_id": "ATT-001",
+  "student_id": "STU001",
+  "timestamp": "2024-12-30T08:15:00Z",
+  "type": "check_in",
+  "location": "Main Entrance"
+}]''', language="json")
+            elif test_type == "grades":
+                st.markdown("""
+                <div style="color: #808080; font-size: 0.85rem; margin-bottom: 0.75rem;">
+                    <strong>Required fields:</strong><br>
+                    • student_id - Student's ID<br>
+                    • course - Course name<br>
+                    • score / max_score - Points earned
+                </div>
+                """, unsafe_allow_html=True)
+                st.code('''[{
+  "event_id": "GRD-001",
+  "student_id": "STU001",
+  "course": "Algebra I",
+  "assignment": "Quiz 1",
+  "score": 85.5,
+  "max_score": 100,
+  "date": "2024-12-30"
+}]''', language="json")
+            else:
+                st.markdown("""
+                <div style="color: #808080; font-size: 0.85rem; margin-bottom: 0.75rem;">
+                    <strong>Required fields:</strong><br>
+                    • student_id - Unique ID<br>
+                    • first_name / last_name<br>
+                    • grade_level - Grade number
+                </div>
+                """, unsafe_allow_html=True)
+                st.code('''[{
+  "event_id": "STU-001",
+  "student_id": "STU005",
+  "first_name": "Maria",
+  "last_name": "Garcia",
+  "grade_level": 10,
+  "parent_email": "parent@email.com",
+  "event_type": "create"
+}]''', language="json")
+            
+            st.markdown("</div>", unsafe_allow_html=True)
+            
+            # Help section
+            st.markdown("""
+            <div class="panel" style="margin-top: 1rem;">
+                <div class="panel-title" style="margin-bottom: 0.5rem;">❓ Need Help?</div>
+                <div style="color: #606060; font-size: 0.8rem;">
+                    Contact your IT department for help exporting data from your school systems.
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
 
     # ============================================
     # PAGE: SETTINGS

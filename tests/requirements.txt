@@ -1,0 +1,3 @@
+# Test dependencies for GradSync property tests
+pytest>=7.0.0
+hypothesis>=6.0.0

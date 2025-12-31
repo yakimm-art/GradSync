@@ -1,0 +1,37 @@
+[
+  {
+    "event_id": "ATT-2024-001",
+    "student_id": "STU001",
+    "timestamp": "2024-12-30T08:15:00Z",
+    "type": "check_in",
+    "location": "Main Entrance"
+  },
+  {
+    "event_id": "ATT-2024-002",
+    "student_id": "STU002",
+    "timestamp": "2024-12-30T08:22:00Z",
+    "type": "late_arrival",
+    "location": "Main Entrance"
+  },
+  {
+    "event_id": "ATT-2024-003",
+    "student_id": "STU003",
+    "timestamp": "2024-12-30T09:00:00Z",
+    "type": "no_show",
+    "location": "Homeroom 101"
+  },
+  {
+    "event_id": "ATT-2024-004",
+    "student_id": "STU001",
+    "timestamp": "2024-12-30T14:30:00Z",
+    "type": "check_out_early",
+    "location": "Main Office"
+  },
+  {
+    "event_id": "ATT-2024-005",
+    "student_id": "STU004",
+    "timestamp": "2024-12-30T08:05:00Z",
+    "type": "check_in",
+    "location": "Side Entrance"
+  }
+]
