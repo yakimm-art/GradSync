@@ -497,6 +497,17 @@ def get_counselor_alerts():
             n.created_at DESC
     """).to_pandas()
 
+@st.cache_data(ttl=120)
+def get_early_warning_students():
+    """Get students showing early warning signs"""
+    try:
+        return session.sql("""
+            SELECT * FROM GRADSYNC_DB.ANALYTICS.EARLY_WARNING_STUDENTS
+            ORDER BY early_warning_score DESC
+        """).to_pandas()
+    except:
+        return pd.DataFrame()
+
 @st.cache_data(ttl=60)
 def get_recent_notes():
     """Get recent notes with AI classification"""
@@ -634,6 +645,7 @@ with nav_col:
         ("📝", "Observations", "observation"),
         ("�",  "Counselor Alerts", "alerts"),
         ("🧠", "AI Insights", "insights"),
+        ("⚡", "Early Warnings", "warnings"),
         ("📤", "Import Data", "upload"),
         ("🎯", "Success Plans", "plans"),
     ]
@@ -1395,6 +1407,119 @@ with main_col:
         except Exception as e:
             st.error(f"Error: {e}")
             st.info("Run sql/11_ai_pattern_detection.sql to set up pattern detection.")
+
+
+    # ============================================
+    # PAGE: EARLY WARNINGS
+    # ============================================
+    
+    elif page == "warnings":
+        st.markdown('<div class="page-header">⚡ Early Warnings</div>', unsafe_allow_html=True)
+        st.markdown('<div class="page-subtitle">Students showing warning signs before they become at-risk</div>', unsafe_allow_html=True)
+        
+        st.markdown("""
+        <div class="welcome-banner">
+            <div style="display: flex; align-items: flex-start; gap: 12px;">
+                <span style="font-size: 1.5rem;">🔮</span>
+                <div>
+                    <div style="color: #eab308; font-weight: 500; margin-bottom: 0.25rem;">Catch problems early</div>
+                    <div style="color: #a0a0a0; font-size: 0.85rem;">These students aren't at-risk yet, but show warning signs. Early action can prevent bigger issues.</div>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        try:
+            warnings_df = get_early_warning_students()
+            
+            if warnings_df.empty:
+                st.markdown("""
+                <div class="panel" style="text-align: center; padding: 3rem;">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">✅</div>
+                    <div style="color: #22c55e; font-size: 1.1rem;">No early warnings</div>
+                    <div style="color: #606060; font-size: 0.9rem; margin-top: 0.5rem;">All students are stable right now.</div>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                # Stats
+                high_count = len(warnings_df[warnings_df['WARNING_LEVEL'] == 'High'])
+                med_count = len(warnings_df[warnings_df['WARNING_LEVEL'] == 'Medium'])
+                low_count = len(warnings_df[warnings_df['WARNING_LEVEL'] == 'Low'])
+                
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.markdown(f"""
+                    <div class="metric-box">
+                        <div class="metric-label">High Priority</div>
+                        <div class="metric-value red">{high_count}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                with col2:
+                    st.markdown(f"""
+                    <div class="metric-box">
+                        <div class="metric-label">Medium Priority</div>
+                        <div class="metric-value yellow">{med_count}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                with col3:
+                    st.markdown(f"""
+                    <div class="metric-box">
+                        <div class="metric-label">Low Priority</div>
+                        <div class="metric-value">{low_count}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                st.markdown("<br>", unsafe_allow_html=True)
+                
+                # Warning indicators legend
+                st.markdown("""
+                <div class="panel" style="padding: 0.75rem 1rem;">
+                    <div style="color: #808080; font-size: 0.8rem;">
+                        <strong>Warning Signs:</strong> 
+                        📉 Attendance dropping • 📚 Grades declining • 😟 Negative sentiment • ⚠️ Multiple concerning notes
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                st.markdown("<br>", unsafe_allow_html=True)
+                
+                # List students
+                for _, student in warnings_df.iterrows():
+                    level = student['WARNING_LEVEL']
+                    border_color = 'rgba(239, 68, 68, 0.3)' if level == 'High' else 'rgba(234, 179, 8, 0.3)' if level == 'Medium' else 'rgba(96, 96, 96, 0.3)'
+                    level_color = '#ef4444' if level == 'High' else '#eab308' if level == 'Medium' else '#808080'
+                    
+                    # Build warning badges
+                    warnings = []
+                    if student['ATTENDANCE_WARNING']:
+                        warnings.append(f"📉 Attendance -{student['ATTENDANCE_DROP']:.0f}%")
+                    if student['GRADE_WARNING']:
+                        warnings.append(f"📚 Grades -{student['GRADE_DROP']:.0f}%")
+                    if student['SENTIMENT_WARNING']:
+                        warnings.append(f"😟 Sentiment drop")
+                    if student['NOTES_WARNING']:
+                        warnings.append(f"⚠️ {int(student['HIGH_RISK_NOTE_COUNT'])} concerning notes")
+                    
+                    st.markdown(f"""
+                    <div class="panel" style="border-color: {border_color}; margin-bottom: 1rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <div>
+                                <span style="font-weight: 500; color: #e0e0e0;">{student['STUDENT_NAME']}</span>
+                                <span style="color: #606060; font-size: 0.85rem;"> • Grade {int(student['GRADE_LEVEL'])}</span>
+                            </div>
+                            <div style="background: {border_color}; color: {level_color}; padding: 0.25rem 0.75rem; border-radius: 4px; font-size: 0.75rem; font-weight: 500;">
+                                {level} Priority
+                            </div>
+                        </div>
+                        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem;">
+                            {''.join([f'<span style="background: #1a1a1a; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.8rem; color: #a0a0a0;">{w}</span>' for w in warnings])}
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+        except Exception as e:
+            st.error(f"Error: {e}")
+            st.info("Run sql/12_early_warning_system.sql to set up early warnings.")
 
 
     # ============================================
