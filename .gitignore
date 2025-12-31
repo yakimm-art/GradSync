@@ -1,1 +1,7 @@
 aws/
+.venv/
+__pycache__/
+*.pyc
+.env
+.hypothesis/
+.pytest_cache/

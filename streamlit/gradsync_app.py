@@ -1174,6 +1174,71 @@ with main_col:
                         st.metric("GPA", f"{student_data['CURRENT_GPA']:.1f}")
                     
                     st.markdown("</div>", unsafe_allow_html=True)
+                    
+                    # Risk Breakdown Section
+                    st.markdown("""
+                    <div class="panel" style="margin-top: 1rem;">
+                        <div class="panel-title" style="margin-bottom: 0.75rem;">🔍 Why This Score?</div>
+                    """, unsafe_allow_html=True)
+                    
+                    try:
+                        # Get risk breakdown data
+                        breakdown = session.sql(f"""
+                            SELECT * FROM GRADSYNC_DB.ANALYTICS.RISK_BREAKDOWN 
+                            WHERE student_name = '{selected}'
+                        """).collect()
+                        
+                        if breakdown:
+                            bd = breakdown[0]
+                            att_contrib = float(bd['ATTENDANCE_RISK_CONTRIBUTION'] or 0)
+                            acad_contrib = float(bd['ACADEMIC_RISK_CONTRIBUTION'] or 0)
+                            sent_contrib = float(bd['SENTIMENT_RISK_CONTRIBUTION'] or 0)
+                            ai_contrib = float(bd['AI_SIGNAL_RISK_CONTRIBUTION'] or 0)
+                            primary_factor = bd['PRIMARY_RISK_FACTOR']
+                            has_new_signal = bd['HAS_NEW_SIGNAL']
+                            
+                            # Show primary factor
+                            st.markdown(f"""
+                            <div style="background: rgba(239, 68, 68, 0.1); border-radius: 8px; padding: 0.75rem; margin-bottom: 1rem;">
+                                <span style="color: #ef4444; font-weight: 500;">Primary Factor:</span> {primary_factor}
+                            </div>
+                            """, unsafe_allow_html=True)
+                            
+                            # New signal badge
+                            if has_new_signal:
+                                st.markdown("""
+                                <div style="background: rgba(234, 179, 8, 0.15); border-radius: 8px; padding: 0.5rem; margin-bottom: 1rem; text-align: center;">
+                                    <span style="color: #eab308;">⚠️ NEW: Attendance declining</span>
+                                </div>
+                                """, unsafe_allow_html=True)
+                            
+                            # Factor breakdown bars
+                            factors = [
+                                ("📅 Attendance", att_contrib, "#ef4444"),
+                                ("📚 Academic", acad_contrib, "#f59e0b"),
+                                ("💬 Sentiment", sent_contrib, "#8b5cf6"),
+                                ("🔔 AI Signals", ai_contrib, "#3b82f6")
+                            ]
+                            
+                            for name, value, color in factors:
+                                pct = min(100, value * 4)  # Scale to percentage (max 25 per factor)
+                                st.markdown(f"""
+                                <div style="margin-bottom: 0.5rem;">
+                                    <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: #808080;">
+                                        <span>{name}</span>
+                                        <span>{value:.1f} pts</span>
+                                    </div>
+                                    <div style="background: #1a1a1a; border-radius: 4px; height: 8px; overflow: hidden;">
+                                        <div style="background: {color}; width: {pct}%; height: 100%;"></div>
+                                    </div>
+                                </div>
+                                """, unsafe_allow_html=True)
+                        else:
+                            st.caption("Risk breakdown not available - no data for this student")
+                    except Exception as e:
+                        st.caption(f"Risk breakdown error: {str(e)}")
+                    
+                    st.markdown("</div>", unsafe_allow_html=True)
                 
                 with col2:
                     st.markdown("""
