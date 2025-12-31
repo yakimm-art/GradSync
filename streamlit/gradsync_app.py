@@ -29,6 +29,8 @@ if 'show_guide' not in st.session_state:
     st.session_state.show_guide = False
 if 'guide_step' not in st.session_state:
     st.session_state.guide_step = 0
+if 'selected_student_id' not in st.session_state:
+    st.session_state.selected_student_id = None
 
 # Theme-aware CSS
 def get_theme_css():
@@ -150,6 +152,32 @@ def get_theme_css():
         """
 
 st.markdown(get_theme_css(), unsafe_allow_html=True)
+
+# SVG Icons (inline, no external dependencies)
+ICONS = {
+    "users": '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>',
+    "alert": '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>',
+    "chart": '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>',
+    "book": '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>',
+    "check": '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>',
+    "graduation": '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg>',
+    "notes": '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>',
+    "target": '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>',
+    "upload": '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>',
+    "settings": '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>',
+    "help": '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>',
+    "dashboard": '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>',
+    "lightning": '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>',
+    "trending": '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>',
+    "circle_check": '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="9 12 12 15 16 9"></polyline></svg>',
+    "circle_alert": '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>',
+    "circle_x": '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>',
+    "sun": '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>',
+    "moon": '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>',
+    "globe": '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>',
+    "brain": '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"></path><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"></path></svg>',
+    "bell": '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>',
+}
 
 # Main CSS (theme-aware using CSS variables)
 st.markdown("""
@@ -430,6 +458,23 @@ st.markdown("""
         margin-bottom: 0.75rem;
     }
     
+    /* Page header styling */
+    .page-header {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 0.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .page-subtitle {
+        color: var(--text-secondary);
+        font-size: 0.95rem;
+        margin-bottom: 1.5rem;
+    }
+    
     /* Form styling */
     .stTextArea textarea, .stTextInput input, .stSelectbox > div > div {
         background: var(--bg-secondary) !important;
@@ -456,11 +501,62 @@ st.markdown("""
     .stTabs [data-baseweb="tab"] {
         border-radius: 8px;
         color: var(--text-secondary);
+        padding: 0.5rem 1rem;
     }
     
     .stTabs [aria-selected="true"] {
         background: var(--accent) !important;
         color: white !important;
+    }
+    
+    /* Empty state */
+    .empty-state {
+        text-align: center;
+        padding: 3rem 2rem;
+        color: var(--text-secondary);
+    }
+    
+    .empty-state-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+    
+    .empty-state-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+    }
+    
+    /* Detail view header */
+    .detail-header {
+        background: var(--bg-card);
+        border-radius: 16px;
+        padding: 1.5rem;
+        border: 1px solid var(--border);
+        margin-bottom: 1.5rem;
+    }
+    
+    /* Metric mini card */
+    .metric-mini {
+        background: var(--bg-card);
+        border-radius: 12px;
+        padding: 1rem;
+        border: 1px solid var(--border);
+        text-align: center;
+    }
+    
+    .metric-mini-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+    
+    .metric-mini-label {
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+        margin-top: 0.25rem;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -478,21 +574,85 @@ def get_students():
 
 @st.cache_data(ttl=60)
 def get_at_risk_students():
-    return session.sql("""
-        SELECT * FROM ANALYTICS.AT_RISK_STUDENTS ORDER BY risk_score DESC
-    """).to_pandas()
+    """Get at-risk students with note sentiment factored into risk score"""
+    try:
+        df = session.sql("""
+            SELECT 
+                a.student_id, a.student_name, a.grade_level,
+                a.attendance_rate, a.current_gpa, 
+                a.risk_score as base_risk_score,
+                COALESCE(n.avg_sentiment, 0) as avg_sentiment,
+                COALESCE(n.negative_notes, 0) as negative_notes,
+                COALESCE(n.total_notes, 0) as total_notes
+            FROM ANALYTICS.AT_RISK_STUDENTS a
+            LEFT JOIN (
+                SELECT student_id, 
+                       AVG(COALESCE(sentiment_score, -0.5)) as avg_sentiment,
+                       SUM(CASE WHEN COALESCE(sentiment_score, -0.5) < -0.2 THEN 1 ELSE 0 END) as negative_notes,
+                       COUNT(*) as total_notes
+                FROM APP.TEACHER_NOTES 
+                GROUP BY student_id
+            ) n ON a.student_id = n.student_id
+            ORDER BY a.risk_score DESC
+        """).to_pandas()
+        
+        # Calculate combined risk score
+        def calc_risk(row):
+            base = row['BASE_RISK_SCORE'] or 0
+            sentiment = row['AVG_SENTIMENT'] or 0
+            neg_notes = row['NEGATIVE_NOTES'] or 0
+            total_notes = row['TOTAL_NOTES'] or 0
+            
+            sentiment_risk = 0
+            if sentiment < 0:
+                sentiment_risk = min(60, abs(sentiment) * 80)
+            sentiment_risk += min(50, neg_notes * 15)
+            if total_notes >= 3:
+                sentiment_risk += 10
+            
+            return min(100, base + sentiment_risk)
+        
+        df['RISK_SCORE'] = df.apply(calc_risk, axis=1)
+        return df.sort_values('RISK_SCORE', ascending=False)
+    except:
+        return session.sql("""
+            SELECT * FROM ANALYTICS.AT_RISK_STUDENTS ORDER BY risk_score DESC
+        """).to_pandas()
 
 @st.cache_data(ttl=60)
 def get_metrics():
-    return session.sql("""
-        SELECT 
-            COUNT(*) as total_students,
-            SUM(CASE WHEN risk_score >= 70 THEN 1 ELSE 0 END) as critical,
-            SUM(CASE WHEN risk_score >= 50 AND risk_score < 70 THEN 1 ELSE 0 END) as high_risk,
-            ROUND(AVG(attendance_rate), 1) as avg_attendance,
-            ROUND(AVG(current_gpa), 2) as avg_gpa
-        FROM ANALYTICS.STUDENT_360_VIEW
-    """).collect()[0]
+    """Get dashboard metrics with note sentiment factored into risk counts"""
+    try:
+        # Get base data
+        total = session.sql("SELECT COUNT(*) as cnt FROM RAW_DATA.STUDENTS").collect()[0]['CNT']
+        
+        # Get all students with combined risk scores
+        all_students = get_all_students()
+        
+        if not all_students.empty:
+            critical = len(all_students[all_students['RISK_SCORE'] >= 70])
+            high_risk = len(all_students[(all_students['RISK_SCORE'] >= 50) & (all_students['RISK_SCORE'] < 70)])
+            avg_attendance = all_students['ATTENDANCE_RATE'].mean()
+            avg_gpa = all_students['CURRENT_GPA'].mean()
+            
+            return {
+                'TOTAL_STUDENTS': total or 0,
+                'CRITICAL': critical,
+                'HIGH_RISK': high_risk,
+                'AVG_ATTENDANCE': round(avg_attendance, 1) if avg_attendance else 0,
+                'AVG_GPA': round(avg_gpa, 2) if avg_gpa else 0
+            }
+    except:
+        pass
+    
+    # Fallback
+    return {
+        'TOTAL_STUDENTS': 0,
+        'CRITICAL': 0,
+        'HIGH_RISK': 0,
+        'AVG_ATTENDANCE': 0,
+        'AVG_GPA': 0
+    }
 
 def analyze_sentiment(text):
     result = session.sql(f"""
@@ -765,6 +925,199 @@ def get_parent_language(student_id):
         return 'English'
 
 # ============================================
+# STUDENT DETAIL VIEW FUNCTIONS
+# ============================================
+
+def get_student_details(student_id):
+    """Get comprehensive student profile data"""
+    student_id = str(student_id).strip()
+    
+    # Simple query matching the working get_students() pattern
+    try:
+        result = session.sql(f"""
+            SELECT 
+                student_id, 
+                first_name, 
+                last_name,
+                first_name || ' ' || last_name as student_name,
+                grade_level, 
+                COALESCE(parent_email, '') as email,
+                COALESCE(parent_language, 'English') as parent_language
+            FROM RAW_DATA.STUDENTS 
+            WHERE student_id = '{student_id}'
+        """).collect()
+        
+        if result:
+            row = result[0]
+            student_dict = {
+                'STUDENT_ID': row['STUDENT_ID'],
+                'FIRST_NAME': row['FIRST_NAME'],
+                'LAST_NAME': row['LAST_NAME'],
+                'STUDENT_NAME': row['STUDENT_NAME'],
+                'GRADE_LEVEL': row['GRADE_LEVEL'],
+                'EMAIL': row['EMAIL'],
+                'PARENT_LANGUAGE': row['PARENT_LANGUAGE'],
+                'ATTENDANCE_RATE': 0,
+                'CURRENT_GPA': 0,
+                'RISK_SCORE': 0,
+                'ABSENCES_LAST_30_DAYS': 0,
+                'TARDIES_LAST_30_DAYS': 0
+            }
+            
+            # Try to get analytics data
+            try:
+                analytics = session.sql(f"""
+                    SELECT attendance_rate, current_gpa, risk_score
+                    FROM ANALYTICS.AT_RISK_STUDENTS 
+                    WHERE student_id = '{student_id}'
+                """).collect()
+                if analytics:
+                    student_dict['ATTENDANCE_RATE'] = analytics[0]['ATTENDANCE_RATE'] or 0
+                    student_dict['CURRENT_GPA'] = analytics[0]['CURRENT_GPA'] or 0
+                    student_dict['RISK_SCORE'] = analytics[0]['RISK_SCORE'] or 0
+            except:
+                pass
+            
+            # Factor in note sentiment - negative notes should increase risk significantly
+            try:
+                notes_risk = session.sql(f"""
+                    SELECT 
+                        COUNT(*) as note_count,
+                        AVG(COALESCE(sentiment_score, -0.5)) as avg_sentiment,
+                        SUM(CASE WHEN COALESCE(sentiment_score, -0.5) < -0.2 THEN 1 ELSE 0 END) as negative_notes
+                    FROM APP.TEACHER_NOTES 
+                    WHERE student_id = '{student_id}'
+                """).collect()
+                if notes_risk and notes_risk[0]['NOTE_COUNT'] > 0:
+                    avg_sentiment = notes_risk[0]['AVG_SENTIMENT'] or -0.5
+                    negative_count = notes_risk[0]['NEGATIVE_NOTES'] or 0
+                    total_notes = notes_risk[0]['NOTE_COUNT'] or 0
+                    
+                    # Calculate sentiment-based risk contribution
+                    sentiment_risk = 0
+                    # Negative sentiment adds significant risk
+                    if avg_sentiment < 0:
+                        sentiment_risk = min(60, abs(avg_sentiment) * 80)
+                    # Each negative note adds 15 points (max 50)
+                    sentiment_risk += min(50, negative_count * 15)
+                    # Multiple notes = pattern of concern
+                    if total_notes >= 3:
+                        sentiment_risk += 10
+                    
+                    # Add to existing risk score, cap at 100
+                    current_risk = student_dict['RISK_SCORE']
+                    student_dict['RISK_SCORE'] = min(100, current_risk + sentiment_risk)
+            except:
+                pass
+            
+            return student_dict
+    except Exception as e:
+        st.error(f"Database error: {e}")
+    
+    return None
+
+@st.cache_data(ttl=120)
+def get_all_students():
+    """Get all students with optional analytics data including note sentiment"""
+    try:
+        # Get base student data with analytics
+        df = session.sql("""
+            SELECT 
+                s.student_id, s.first_name, s.last_name,
+                s.first_name || ' ' || s.last_name as student_name,
+                s.grade_level,
+                COALESCE(a.attendance_rate, 0) as attendance_rate,
+                COALESCE(a.current_gpa, 0) as current_gpa,
+                COALESCE(a.risk_score, 0) as base_risk_score,
+                COALESCE(n.avg_sentiment, 0) as avg_sentiment,
+                COALESCE(n.negative_notes, 0) as negative_notes,
+                COALESCE(n.total_notes, 0) as total_notes
+            FROM RAW_DATA.STUDENTS s
+            LEFT JOIN ANALYTICS.AT_RISK_STUDENTS a ON s.student_id = a.student_id
+            LEFT JOIN (
+                SELECT student_id, 
+                       AVG(COALESCE(sentiment_score, -0.5)) as avg_sentiment,
+                       SUM(CASE WHEN COALESCE(sentiment_score, -0.5) < -0.2 THEN 1 ELSE 0 END) as negative_notes,
+                       COUNT(*) as total_notes
+                FROM APP.TEACHER_NOTES 
+                GROUP BY student_id
+            ) n ON s.student_id = n.student_id
+            ORDER BY s.last_name, s.first_name
+        """).to_pandas()
+        
+        # Calculate combined risk score including note sentiment
+        def calc_risk(row):
+            base = row['BASE_RISK_SCORE'] or 0
+            sentiment = row['AVG_SENTIMENT'] or 0
+            neg_notes = row['NEGATIVE_NOTES'] or 0
+            total_notes = row['TOTAL_NOTES'] or 0
+            
+            sentiment_risk = 0
+            # Negative sentiment adds risk
+            if sentiment < 0:
+                sentiment_risk = min(60, abs(sentiment) * 80)
+            # Each negative note adds significant risk
+            sentiment_risk += min(50, neg_notes * 15)
+            # Multiple notes about same student = pattern of concern
+            if total_notes >= 3:
+                sentiment_risk += 10
+            
+            return min(100, base + sentiment_risk)
+        
+        df['RISK_SCORE'] = df.apply(calc_risk, axis=1)
+        return df
+    except:
+        # Fallback without analytics
+        return session.sql("""
+            SELECT student_id, first_name, last_name,
+                first_name || ' ' || last_name as student_name,
+                grade_level, 0 as attendance_rate, 0 as current_gpa, 0 as risk_score
+            FROM RAW_DATA.STUDENTS ORDER BY last_name, first_name
+        """).to_pandas()
+
+def get_student_attendance_history(student_id):
+    """Get recent attendance records for a student"""
+    try:
+        return session.sql(f"""
+            SELECT attendance_date, status, period
+            FROM RAW_DATA.ATTENDANCE
+            WHERE student_id = '{student_id}'
+            ORDER BY attendance_date DESC
+            LIMIT 20
+        """).to_pandas()
+    except:
+        return pd.DataFrame()
+
+def get_student_grades(student_id):
+    """Get recent grades for a student"""
+    try:
+        return session.sql(f"""
+            SELECT course_name as subject, assignment_name, score, max_score, grade_date,
+                   ROUND(score / NULLIF(max_score, 0) * 100, 1) as percentage
+            FROM RAW_DATA.GRADES
+            WHERE student_id = '{student_id}'
+            ORDER BY grade_date DESC
+            LIMIT 15
+        """).to_pandas()
+    except:
+        return pd.DataFrame()
+
+def get_student_notes(student_id):
+    """Get teacher observations for a student"""
+    try:
+        return session.sql(f"""
+            SELECT 
+                note_id, note_text, note_category,
+                sentiment_score, created_at
+            FROM APP.TEACHER_NOTES
+            WHERE student_id = '{student_id}'
+            ORDER BY created_at DESC
+            LIMIT 10
+        """).to_pandas()
+    except:
+        return pd.DataFrame()
+
+# ============================================
 # INTERVENTION TRACKING FUNCTIONS
 # ============================================
 
@@ -878,45 +1231,80 @@ nav_col, main_col = st.columns([1, 4])
 # ============================================
 
 with nav_col:
+    # Navigation SVG icons
+    NAV_ICONS = {
+        "dashboard": '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>',
+        "students": '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>',
+        "notes": '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>',
+        "interventions": '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>',
+        "upload": '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>',
+        "settings": '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>',
+        "help": '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>',
+    }
+    
     # Logo
-    st.markdown("""
+    logo_icon = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg>'
+    st.markdown(f"""
     <div style="display: flex; align-items: center; gap: 10px; padding: 1rem 0.5rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border);">
-        <span style="font-size: 1.5rem;">🎓</span>
+        {logo_icon}
         <span style="color: var(--accent); font-size: 1.2rem; font-weight: 700;">GradSync</span>
     </div>
     """, unsafe_allow_html=True)
     
-    # Theme toggle
-    theme_label = "🌙 Dark" if st.session_state.theme == "light" else "☀️ Light"
-    if st.button(theme_label, key="theme_toggle", use_container_width=True):
-        st.session_state.theme = "dark" if st.session_state.theme == "light" else "light"
-        st.rerun()
-    
-    st.markdown("<br>", unsafe_allow_html=True)
-    
-    # Navigation items
-    nav_items = [
-        ("🏠", "Dashboard", "dashboard"),
-        ("👥", "Students", "students"),
-        ("📝", "Notes", "notes"),
-        ("🎯", "Interventions", "interventions"),
-        ("📤", "Import Data", "upload"),
-    ]
-    
-    for icon, label, key in nav_items:
-        if st.button(f"{icon}  {label}", key=f"nav_{key}", use_container_width=True):
-            st.session_state.page = key
+    # Theme toggle using columns for icon + button
+    theme_text = "Dark" if st.session_state.theme == "light" else "Light"
+    icon_col, btn_col = st.columns([1, 4])
+    with icon_col:
+        if st.session_state.theme == "light":
+            st.markdown('<div style="padding-top: 8px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg></div>', unsafe_allow_html=True)
+        else:
+            st.markdown('<div style="padding-top: 8px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line></svg></div>', unsafe_allow_html=True)
+    with btn_col:
+        if st.button(theme_text, key="theme_toggle", use_container_width=True):
+            st.session_state.theme = "dark" if st.session_state.theme == "light" else "light"
             st.rerun()
     
     st.markdown("<br>", unsafe_allow_html=True)
     
-    if st.button("⚙️  Settings", key="nav_settings", use_container_width=True):
-        st.session_state.page = "settings"
-        st.rerun()
+    # Navigation items using columns for icon + button
+    nav_items = [
+        ("dashboard", "Dashboard", NAV_ICONS["dashboard"]),
+        ("students", "Students", NAV_ICONS["students"]),
+        ("notes", "Notes", NAV_ICONS["notes"]),
+        ("interventions", "Interventions", NAV_ICONS["interventions"]),
+        ("upload", "Import Data", NAV_ICONS["upload"]),
+    ]
     
-    if st.button("❓  Help Guide", key="nav_help", use_container_width=True):
-        st.session_state.show_guide = True
-        st.rerun()
+    for key, label, icon in nav_items:
+        is_active = st.session_state.page == key
+        icon_col, btn_col = st.columns([1, 4])
+        with icon_col:
+            color = "var(--accent)" if is_active else "var(--text-secondary)"
+            st.markdown(f'<div style="padding-top: 8px;">{icon.replace("currentColor", color)}</div>', unsafe_allow_html=True)
+        with btn_col:
+            if st.button(label, key=f"nav_{key}", use_container_width=True):
+                st.session_state.page = key
+                st.rerun()
+    
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # Settings
+    icon_col, btn_col = st.columns([1, 4])
+    with icon_col:
+        st.markdown(f'<div style="padding-top: 8px;">{NAV_ICONS["settings"].replace("currentColor", "var(--text-secondary)")}</div>', unsafe_allow_html=True)
+    with btn_col:
+        if st.button("Settings", key="nav_settings", use_container_width=True):
+            st.session_state.page = "settings"
+            st.rerun()
+    
+    # Help
+    icon_col, btn_col = st.columns([1, 4])
+    with icon_col:
+        st.markdown(f'<div style="padding-top: 8px;">{NAV_ICONS["help"].replace("currentColor", "var(--text-secondary)")}</div>', unsafe_allow_html=True)
+    with btn_col:
+        if st.button("Help Guide", key="nav_help", use_container_width=True):
+            st.session_state.show_guide = True
+            st.rerun()
 
 
 # ============================================
@@ -927,18 +1315,26 @@ with main_col:
     page = st.session_state.page
     
     # ============================================
-    # HELP GUIDE - SIMPLE MODAL
+    # HELP GUIDE - MODAL (with SVG icons)
     # ============================================
     
+    # SVG icons for the guide (larger size)
+    GUIDE_ICONS = {
+        "welcome": '<svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg>',
+        "dashboard": '<svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>',
+        "navigation": '<svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" fill="white"></polygon></svg>',
+        "ready": '<svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>'
+    }
+    
     def show_help_guide():
-        """Show help guide as a simple step-by-step modal"""
+        """Show help guide - only when show_guide is True"""
         if not st.session_state.show_guide:
             return
         
         guide_content = [
             {
-                "icon": "🎓",
-                "title": "Welcome to GradSync!",
+                "icon": GUIDE_ICONS["welcome"],
+                "title": "Welcome to GradSync",
                 "desc": "Your AI-powered student success platform",
                 "items": [
                     "Identify at-risk students early",
@@ -947,7 +1343,7 @@ with main_col:
                 ]
             },
             {
-                "icon": "📊",
+                "icon": GUIDE_ICONS["dashboard"],
                 "title": "Your Dashboard",
                 "desc": "Everything you need at a glance",
                 "items": [
@@ -957,7 +1353,7 @@ with main_col:
                 ]
             },
             {
-                "icon": "📍",
+                "icon": GUIDE_ICONS["navigation"],
                 "title": "Navigation",
                 "desc": "Find what you need quickly",
                 "items": [
@@ -968,7 +1364,7 @@ with main_col:
                 ]
             },
             {
-                "icon": "🚀",
+                "icon": GUIDE_ICONS["ready"],
                 "title": "You're Ready!",
                 "desc": "Start helping your students succeed",
                 "items": [
@@ -983,38 +1379,33 @@ with main_col:
         current = guide_content[step]
         total = len(guide_content)
         
-        # Modern card design with shadow
-        st.markdown(f"""
-        <div style="background: linear-gradient(135deg, #6c5ce7 0%, #a29bfe 100%); border-radius: 20px; padding: 2rem; margin-bottom: 1.5rem; color: white; box-shadow: 0 10px 40px rgba(108, 92, 231, 0.3);">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                <span style="background: rgba(255,255,255,0.2); padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.85rem;">📚 Getting Started</span>
-                <span style="background: rgba(255,255,255,0.2); padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.85rem;">Step {step + 1} of {total}</span>
-            </div>
-            <div style="text-align: center; margin-bottom: 1.5rem;">
-                <div style="font-size: 4rem; margin-bottom: 0.75rem;">{current['icon']}</div>
-                <div style="font-size: 1.75rem; font-weight: 700; margin-bottom: 0.5rem;">{current['title']}</div>
-                <div style="font-size: 1rem; opacity: 0.9;">{current['desc']}</div>
-            </div>
-            <div style="background: rgba(255,255,255,0.15); border-radius: 16px; padding: 1.25rem;">
-        """, unsafe_allow_html=True)
-        
+        # Build items HTML - using Unicode checkmark instead of SVG for better compatibility
+        items_html = ""
         for item in current['items']:
-            st.markdown(f"""
-            <div style="display: flex; align-items: center; gap: 10px; padding: 0.5rem 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
-                <span style="color: #a29bfe; font-size: 1.1rem;">✓</span>
-                <span style="color: white; font-size: 0.95rem;">{item}</span>
-            </div>
-            """, unsafe_allow_html=True)
+            items_html += f'<div style="display: flex; align-items: center; gap: 12px; padding: 0.75rem 0; border-bottom: 1px solid rgba(255,255,255,0.15);"><span style="color: #2d1b69; font-size: 1.2rem; font-weight: bold;">✓</span><span style="color: #1a1a2e; font-size: 1rem; font-weight: 500;">{item}</span></div>'
         
         # Progress dots
         dots_html = '<div style="display: flex; justify-content: center; gap: 10px; margin-top: 1.5rem;">'
         for i in range(total):
             bg = "white" if i == step else "rgba(255,255,255,0.3)"
             size = "12px" if i == step else "8px"
-            dots_html += f'<div style="width: {size}; height: {size}; border-radius: 50%; background: {bg}; transition: all 0.3s;"></div>'
+            dots_html += f'<div style="width: {size}; height: {size}; border-radius: 50%; background: {bg};"></div>'
         dots_html += '</div>'
         
+        # Single HTML block for the entire guide card
         st.markdown(f"""
+        <div style="background: linear-gradient(135deg, #6c5ce7 0%, #a29bfe 100%); border-radius: 20px; padding: 2rem; margin-bottom: 1.5rem; color: white; box-shadow: 0 10px 40px rgba(108, 92, 231, 0.3);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <span style="background: rgba(255,255,255,0.2); padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.85rem;">Getting Started</span>
+                <span style="background: rgba(255,255,255,0.2); padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.85rem;">Step {step + 1} of {total}</span>
+            </div>
+            <div style="text-align: center; margin-bottom: 1.5rem;">
+                <div style="margin-bottom: 0.75rem;">{current['icon']}</div>
+                <div style="font-size: 1.75rem; font-weight: 700; margin-bottom: 0.5rem;">{current['title']}</div>
+                <div style="font-size: 1rem; opacity: 0.9;">{current['desc']}</div>
+            </div>
+            <div style="background: rgba(255,255,255,0.85); border-radius: 16px; padding: 1.25rem;">
+                {items_html}
             </div>
             {dots_html}
         </div>
@@ -1061,13 +1452,13 @@ with main_col:
         with col_welcome:
             st.markdown("""
             <div class="welcome-section">
-                <div class="welcome-title">Hello, Teacher! 👋</div>
+                <div class="welcome-title">Hello, Teacher!</div>
                 <div class="welcome-subtitle">Here's what's happening with your students today</div>
             </div>
             """, unsafe_allow_html=True)
         
         with col_help:
-            if st.button("❓ Take a Tour", use_container_width=True):
+            if st.button("Take a Tour", use_container_width=True):
                 st.session_state.show_guide = True
                 st.session_state.guide_step = 0
                 st.rerun()
@@ -1077,15 +1468,31 @@ with main_col:
         
         with main_left:
             # Metrics row with colored stat cards
+            metrics = {'TOTAL_STUDENTS': 0, 'CRITICAL': 0, 'HIGH_RISK': 0, 'AVG_ATTENDANCE': 0, 'AVG_GPA': 0}
             try:
                 metrics = get_metrics()
-                
+            except Exception as e:
+                st.error(f"Error loading metrics: {e}")
+            
+            # Check if there are no students - show import prompt
+            if metrics['TOTAL_STUDENTS'] == 0:
+                st.markdown(f"""
+                <div class="card" style="text-align: center; padding: 3rem; margin-bottom: 1.5rem; background: linear-gradient(135deg, var(--accent-light) 0%, var(--bg-card) 100%);">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">{ICONS['upload']}</div>
+                    <div style="font-size: 1.25rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.5rem;">No Students Yet</div>
+                    <div style="color: var(--text-secondary); margin-bottom: 1.5rem;">Import your student roster to get started with GradSync</div>
+                </div>
+                """, unsafe_allow_html=True)
+                if st.button("📤 Import Student Data", use_container_width=True, type="primary"):
+                    st.session_state.page = "upload"
+                    st.rerun()
+            else:
                 col1, col2, col3, col4 = st.columns(4)
                 
                 with col1:
                     st.markdown(f"""
                     <div class="stat-card purple">
-                        <div class="stat-card-icon">👥</div>
+                        <div class="stat-card-icon">{ICONS['users']}</div>
                         <div class="stat-card-content">
                             <div class="stat-card-value">{metrics['TOTAL_STUDENTS']}</div>
                             <div class="stat-card-label">Students</div>
@@ -1094,11 +1501,12 @@ with main_col:
                     """, unsafe_allow_html=True)
                 
                 with col2:
+                    at_risk_total = (metrics['CRITICAL'] or 0) + (metrics['HIGH_RISK'] or 0)
                     st.markdown(f"""
                     <div class="stat-card orange">
-                        <div class="stat-card-icon">⚠️</div>
+                        <div class="stat-card-icon">{ICONS['alert']}</div>
                         <div class="stat-card-content">
-                            <div class="stat-card-value">{metrics['CRITICAL']}</div>
+                            <div class="stat-card-value">{at_risk_total}</div>
                             <div class="stat-card-label">At Risk</div>
                         </div>
                     </div>
@@ -1107,7 +1515,7 @@ with main_col:
                 with col3:
                     st.markdown(f"""
                     <div class="stat-card green">
-                        <div class="stat-card-icon">📊</div>
+                        <div class="stat-card-icon">{ICONS['chart']}</div>
                         <div class="stat-card-content">
                             <div class="stat-card-value">{metrics['AVG_ATTENDANCE']}%</div>
                             <div class="stat-card-label">Attendance</div>
@@ -1118,43 +1526,41 @@ with main_col:
                 with col4:
                     st.markdown(f"""
                     <div class="stat-card pink">
-                        <div class="stat-card-icon">📚</div>
+                        <div class="stat-card-icon">{ICONS['book']}</div>
                         <div class="stat-card-content">
                             <div class="stat-card-value">{metrics['AVG_GPA']}</div>
                             <div class="stat-card-label">Avg GPA</div>
                         </div>
                     </div>
                     """, unsafe_allow_html=True)
-            except Exception as e:
-                st.error(f"Error loading metrics: {e}")
-            
-            st.markdown("<br>", unsafe_allow_html=True)
-            
-            # Students needing attention
-            st.markdown('<div class="section-title">Students Needing Attention</div>', unsafe_allow_html=True)
-            
-            try:
-                at_risk_df = get_at_risk_students()
                 
-                if not at_risk_df.empty:
-                    for _, student in at_risk_df.head(4).iterrows():
-                        risk_class = "critical" if student['RISK_SCORE'] >= 70 else "warning" if student['RISK_SCORE'] >= 50 else "good"
-                        risk_icon = "🔴" if student['RISK_SCORE'] >= 70 else "🟡" if student['RISK_SCORE'] >= 50 else "🟢"
-                        
-                        st.markdown(f"""
-                        <div class="student-card">
-                            <div class="student-avatar {risk_class}">{risk_icon}</div>
-                            <div class="student-info">
-                                <div class="student-name">{student['STUDENT_NAME']}</div>
-                                <div class="student-meta">Grade {int(student['GRADE_LEVEL'])} · Attendance: {student['ATTENDANCE_RATE']}%</div>
+                st.markdown("<br>", unsafe_allow_html=True)
+                
+                # Students needing attention
+                st.markdown('<div class="section-title">Students Needing Attention</div>', unsafe_allow_html=True)
+                
+                try:
+                    at_risk_df = get_at_risk_students()
+                    
+                    if not at_risk_df.empty:
+                        for _, student in at_risk_df.head(4).iterrows():
+                            risk_class = "critical" if student['RISK_SCORE'] >= 70 else "warning" if student['RISK_SCORE'] >= 50 else "good"
+                            risk_icon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="#e74c3c"><circle cx="12" cy="12" r="10"></circle></svg>' if student['RISK_SCORE'] >= 70 else '<svg width="16" height="16" viewBox="0 0 24 24" fill="#f1c40f"><circle cx="12" cy="12" r="10"></circle></svg>' if student['RISK_SCORE'] >= 50 else '<svg width="16" height="16" viewBox="0 0 24 24" fill="#2ecc71"><circle cx="12" cy="12" r="10"></circle></svg>'
+                            
+                            st.markdown(f"""
+                            <div class="student-card">
+                                <div class="student-avatar {risk_class}">{risk_icon}</div>
+                                <div class="student-info">
+                                    <div class="student-name">{student['STUDENT_NAME']}</div>
+                                    <div class="student-meta">Grade {int(student['GRADE_LEVEL'])} · Attendance: {student['ATTENDANCE_RATE']}%</div>
+                                </div>
+                                <div class="student-score {risk_class}">{int(student['RISK_SCORE'])}</div>
                             </div>
-                            <div class="student-score {risk_class}">{int(student['RISK_SCORE'])}</div>
-                        </div>
-                        """, unsafe_allow_html=True)
-                else:
-                    st.success("🎉 All students are doing great!")
-            except Exception as e:
-                st.info("Loading student data...")
+                            """, unsafe_allow_html=True)
+                    else:
+                        st.success("All students are doing great!")
+                except Exception as e:
+                    st.info("Loading student data...")
             
             st.markdown("<br>", unsafe_allow_html=True)
             
@@ -1163,7 +1569,8 @@ with main_col:
             st.markdown("""
             <div class="chart-container">
                 <div style="text-align: center; padding: 2rem; color: var(--text-muted);">
-                    📈 Activity trends will appear here as data accumulates
+                    <i class="fa-solid fa-chart-line" style="font-size: 1.5rem; margin-bottom: 0.5rem;"></i><br>
+                    Activity trends will appear here as data accumulates
                 </div>
             </div>
             """, unsafe_allow_html=True)
@@ -1174,11 +1581,11 @@ with main_col:
             
             col1, col2 = st.columns(2)
             with col1:
-                if st.button("📝 Add Note", use_container_width=True):
+                if st.button("Add Note", use_container_width=True):
                     st.session_state.page = "notes"
                     st.rerun()
             with col2:
-                if st.button("🎯 New Plan", use_container_width=True):
+                if st.button("New Plan", use_container_width=True):
                     st.session_state.page = "interventions"
                     st.rerun()
             
@@ -1203,9 +1610,9 @@ with main_col:
                         </div>
                         """, unsafe_allow_html=True)
                 else:
-                    st.markdown("""
+                    st.markdown(f"""
                     <div class="card" style="text-align: center; padding: 1.5rem;">
-                        <div style="font-size: 2rem; margin-bottom: 0.5rem;">✅</div>
+                        <div style="margin-bottom: 0.5rem;">{ICONS['check']}</div>
                         <div style="color: var(--text-secondary);">No pending alerts</div>
                     </div>
                     """, unsafe_allow_html=True)
@@ -1252,171 +1659,473 @@ with main_col:
     # ============================================
     
     elif page == "students":
-        st.markdown('<div class="page-header">👥 Students</div>', unsafe_allow_html=True)
-        st.markdown('<div class="page-subtitle">Student analytics, early warnings, and sentiment trends</div>', unsafe_allow_html=True)
-        
-        # Tabs for sub-sections
-        tab1, tab2, tab3 = st.tabs(["📊 Analytics", "⚡ Early Warnings", "📈 Sentiment Trends"])
-        
-        with tab1:
-            # ANALYTICS CONTENT
-            try:
-                metrics = get_metrics()
+        # Check if viewing student detail
+        if st.session_state.selected_student_id:
+            # STUDENT DETAIL VIEW
+            student_id = str(st.session_state.selected_student_id).strip()
+            student = get_student_details(student_id)
+            
+            if student:
+                # Back button
+                if st.button("← Back to Students", key="back_to_list"):
+                    st.session_state.selected_student_id = None
+                    st.rerun()
                 
-                col1, col2, col3, col4 = st.columns(4)
-                with col1:
-                    st.markdown(f"""
-                    <div class="stat-card purple">
-                        <div class="stat-card-icon">👥</div>
-                        <div class="stat-card-content">
-                            <div class="stat-card-value">{metrics['TOTAL_STUDENTS']}</div>
-                            <div class="stat-card-label">Students</div>
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                with col2:
-                    st.markdown(f"""
-                    <div class="stat-card orange">
-                        <div class="stat-card-icon">🔴</div>
-                        <div class="stat-card-content">
-                            <div class="stat-card-value">{metrics['CRITICAL']}</div>
-                            <div class="stat-card-label">Critical</div>
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                with col3:
-                    st.markdown(f"""
-                    <div class="stat-card pink">
-                        <div class="stat-card-icon">🟡</div>
-                        <div class="stat-card-content">
-                            <div class="stat-card-value">{metrics['HIGH_RISK']}</div>
-                            <div class="stat-card-label">High Risk</div>
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                with col4:
-                    st.markdown(f"""
-                    <div class="stat-card green">
-                        <div class="stat-card-icon">📚</div>
-                        <div class="stat-card-content">
-                            <div class="stat-card-value">{metrics['AVG_GPA']}</div>
-                            <div class="stat-card-label">Avg GPA</div>
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
-            except Exception as e:
-                st.error(f"Error loading metrics: {e}")
-            
-            st.markdown("<br>", unsafe_allow_html=True)
-            
-            # At-risk student list
-            st.markdown('<div class="section-title">At-Risk Students</div>', unsafe_allow_html=True)
-            try:
-                at_risk_df = get_at_risk_students()
-                if not at_risk_df.empty:
-                    for _, student in at_risk_df.iterrows():
-                        risk_class = "critical" if student['RISK_SCORE'] >= 70 else "warning" if student['RISK_SCORE'] >= 50 else "good"
-                        risk_icon = "🔴" if student['RISK_SCORE'] >= 70 else "🟡" if student['RISK_SCORE'] >= 50 else "🟢"
-                        
-                        st.markdown(f"""
-                        <div class="student-card">
-                            <div class="student-avatar {risk_class}">{risk_icon}</div>
-                            <div class="student-info">
-                                <div class="student-name">{student['STUDENT_NAME']}</div>
-                                <div class="student-meta">Grade {int(student['GRADE_LEVEL'])} · Attendance: {student['ATTENDANCE_RATE']}% · GPA: {student['CURRENT_GPA']:.1f}</div>
+                # Student header
+                risk_score = student.get('RISK_SCORE', 0) or 0
+                risk_class = "critical" if risk_score >= 70 else "warning" if risk_score >= 50 else "good"
+                risk_icon = "🔴" if risk_score >= 70 else "🟡" if risk_score >= 50 else "🟢"
+                risk_label = "High Risk" if risk_score >= 70 else "Medium Risk" if risk_score >= 50 else "Low Risk"
+                attendance = student.get('ATTENDANCE_RATE', 0) or 0
+                gpa = student.get('CURRENT_GPA', 0) or 0
+                
+                # Header card with gradient
+                st.markdown(f"""
+                <div class="detail-header" style="background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-secondary) 100%);">
+                    <div style="display: flex; align-items: center; gap: 1.5rem; margin-bottom: 1.5rem;">
+                        <div class="student-avatar {risk_class}" style="width: 80px; height: 80px; font-size: 2.5rem; display: flex; align-items: center; justify-content: center; border-radius: 16px;">{risk_icon}</div>
+                        <div style="flex: 1;">
+                            <div style="font-size: 1.75rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.25rem;">{student['STUDENT_NAME']}</div>
+                            <div style="color: var(--text-secondary); font-size: 0.95rem;">Grade {int(student.get('GRADE_LEVEL', 0))} · {student.get('EMAIL', '') or 'No email on file'}</div>
+                            <div style="margin-top: 0.5rem;">
+                                <span class="badge badge-{'danger' if risk_score >= 70 else 'warning' if risk_score >= 50 else 'success'}">{risk_label}</span>
                             </div>
-                            <div class="student-score {risk_class}">{int(student['RISK_SCORE'])}</div>
                         </div>
-                        """, unsafe_allow_html=True)
-                else:
-                    st.success("🎉 No at-risk students!")
-            except Exception as e:
-                st.warning(f"Could not load data: {e}")
-        
-        with tab2:
-            # EARLY WARNINGS CONTENT
-            st.markdown("""
-            <div class="info-tip">
-                ⚡ Students showing warning signs before becoming at-risk. Early intervention can prevent escalation.
-            </div>
-            """, unsafe_allow_html=True)
-            
-            try:
-                warning_df = get_early_warning_students()
-                if not warning_df.empty:
-                    for _, student in warning_df.iterrows():
-                        indicators = []
-                        if student.get('ATTENDANCE_DECLINING'): indicators.append("📉 Attendance declining")
-                        if student.get('GRADES_DROPPING'): indicators.append("📚 Grades dropping")
-                        if student.get('NEGATIVE_SENTIMENT'): indicators.append("😟 Negative sentiment")
-                        
+                    </div>
+                    <div style="display: flex; gap: 1rem;">
+                        <div class="metric-mini" style="flex: 1;">
+                            <div class="metric-mini-value" style="color: {'var(--danger)' if risk_score >= 70 else 'var(--warning)' if risk_score >= 50 else 'var(--success)'};">{int(risk_score)}</div>
+                            <div class="metric-mini-label">Risk Score</div>
+                        </div>
+                        <div class="metric-mini" style="flex: 1;">
+                            <div class="metric-mini-value" style="color: {'var(--success)' if attendance >= 90 else 'var(--warning)' if attendance >= 80 else 'var(--danger)'};">{attendance:.0f}%</div>
+                            <div class="metric-mini-label">Attendance</div>
+                        </div>
+                        <div class="metric-mini" style="flex: 1;">
+                            <div class="metric-mini-value" style="color: {'var(--success)' if gpa >= 3.0 else 'var(--warning)' if gpa >= 2.0 else 'var(--danger)'};">{gpa:.2f}</div>
+                            <div class="metric-mini-label">GPA</div>
+                        </div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Quick actions row
+                col_a1, col_a2, col_a3 = st.columns(3)
+                with col_a1:
+                    if st.button("📝 Add Note", key="detail_add_note", use_container_width=True):
+                        st.session_state.page = "notes"
+                        st.rerun()
+                with col_a2:
+                    if st.button("🎯 Generate Plan", key="detail_gen_plan", use_container_width=True):
+                        st.session_state.page = "interventions"
+                        st.rerun()
+                with col_a3:
+                    parent_lang = student.get('PARENT_LANGUAGE', 'English')
+                    st.button(f"🌐 Translate ({parent_lang})", key="detail_translate", use_container_width=True)
+                
+                st.markdown("<br>", unsafe_allow_html=True)
+                
+                # Main content in two columns
+                left_col, right_col = st.columns([1, 1])
+                
+                with left_col:
+                    # Risk Breakdown
+                    st.markdown('<div class="section-title">Risk Breakdown</div>', unsafe_allow_html=True)
+                    risk_breakdown = get_student_risk_breakdown(student_id)
+                    if risk_breakdown:
                         st.markdown(f"""
-                        <div class="student-card">
-                            <div class="student-avatar warning">⚠️</div>
-                            <div class="student-info">
-                                <div class="student-name">{student['STUDENT_NAME']}</div>
-                                <div class="student-meta">Grade {int(student['GRADE_LEVEL'])} · {' · '.join(indicators) if indicators else 'Multiple indicators'}</div>
-                            </div>
-                            <div class="student-score warning">{student['EARLY_WARNING_SCORE']:.0f}</div>
-                        </div>
-                        """, unsafe_allow_html=True)
-                else:
-                    st.success("🎉 No early warning signs detected!")
-            except Exception as e:
-                st.info("Early warning system ready - data will appear as patterns emerge.")
-        
-        with tab3:
-            # SENTIMENT TRENDS CONTENT
-            st.markdown("""
-            <div class="info-tip">
-                📈 Track how teacher observations about students change over time.
-            </div>
-            """, unsafe_allow_html=True)
-            
-            try:
-                sentiment_df = get_sentiment_summary()
-                if not sentiment_df.empty:
-                    # Show declining sentiment first
-                    declining = sentiment_df[sentiment_df['TREND'] == 'Declining']
-                    if not declining.empty:
-                        st.markdown('<div class="section-title" style="color: var(--danger);">⚠️ Declining Sentiment</div>', unsafe_allow_html=True)
-                        for _, student in declining.iterrows():
-                            st.markdown(f"""
-                            <div class="student-card">
-                                <div class="student-avatar critical">📉</div>
-                                <div class="student-info">
-                                    <div class="student-name">{student['STUDENT_NAME']}</div>
-                                    <div class="student-meta">Sentiment declining</div>
+                        <div class="card">
+                            <div style="margin-bottom: 1rem;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                    <span>Attendance</span><span style="font-weight: 600;">{risk_breakdown['attendance']:.0f}%</span>
                                 </div>
-                                <div class="student-score critical">{student['SENTIMENT_CHANGE']:.2f}</div>
+                                <div style="background: var(--border); border-radius: 4px; height: 8px;">
+                                    <div style="background: var(--warning); width: {risk_breakdown['attendance']}%; height: 100%; border-radius: 4px;"></div>
+                                </div>
                             </div>
-                            """, unsafe_allow_html=True)
+                            <div style="margin-bottom: 1rem;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                    <span>Academic</span><span style="font-weight: 600;">{risk_breakdown['academic']:.0f}%</span>
+                                </div>
+                                <div style="background: var(--border); border-radius: 4px; height: 8px;">
+                                    <div style="background: var(--accent); width: {risk_breakdown['academic']}%; height: 100%; border-radius: 4px;"></div>
+                                </div>
+                            </div>
+                            <div style="margin-bottom: 1rem;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                    <span>Sentiment</span><span style="font-weight: 600;">{risk_breakdown['sentiment']:.0f}%</span>
+                                </div>
+                                <div style="background: var(--border); border-radius: 4px; height: 8px;">
+                                    <div style="background: var(--danger); width: {risk_breakdown['sentiment']}%; height: 100%; border-radius: 4px;"></div>
+                                </div>
+                            </div>
+                            <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                                <span class="badge badge-warning">Primary: {risk_breakdown['primary_factor']}</span>
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    else:
+                        st.info("Risk breakdown not available")
                     
-                    improving = sentiment_df[sentiment_df['TREND'] == 'Improving']
-                    if not improving.empty:
-                        st.markdown('<div class="section-title" style="color: var(--success); margin-top: 1rem;">✨ Improving Sentiment</div>', unsafe_allow_html=True)
-                        for _, student in improving.iterrows():
-                            st.markdown(f"""
-                            <div class="student-card">
-                                <div class="student-avatar good">📈</div>
-                                <div class="student-info">
-                                    <div class="student-name">{student['STUDENT_NAME']}</div>
-                                    <div class="student-meta">Sentiment improving</div>
+                    # Attendance
+                    st.markdown('<div class="section-title" style="margin-top: 1.5rem;">Attendance</div>', unsafe_allow_html=True)
+                    att_rate = student.get('ATTENDANCE_RATE', 0) or 0
+                    absences = student.get('ABSENCES_LAST_30_DAYS', 0) or 0
+                    tardies = student.get('TARDIES_LAST_30_DAYS', 0) or 0
+                    st.markdown(f"""
+                    <div class="card">
+                        <div style="display: flex; justify-content: space-around; text-align: center;">
+                            <div>
+                                <div style="font-size: 1.75rem; font-weight: 700; color: {'var(--success)' if att_rate >= 90 else 'var(--warning)' if att_rate >= 80 else 'var(--danger)'};">{att_rate:.1f}%</div>
+                                <div style="color: var(--text-secondary); font-size: 0.85rem;">Attendance Rate</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 1.75rem; font-weight: 700; color: var(--danger);">{int(absences)}</div>
+                                <div style="color: var(--text-secondary); font-size: 0.85rem;">Absences (30d)</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 1.75rem; font-weight: 700; color: var(--warning);">{int(tardies)}</div>
+                                <div style="color: var(--text-secondary); font-size: 0.85rem;">Tardies (30d)</div>
+                            </div>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                with right_col:
+                    # Grades
+                    st.markdown('<div class="section-title">Academic Performance</div>', unsafe_allow_html=True)
+                    gpa = student.get('CURRENT_GPA', 0) or 0
+                    st.markdown(f"""
+                    <div class="card">
+                        <div style="text-align: center; margin-bottom: 1rem;">
+                            <div style="font-size: 2.5rem; font-weight: 700; color: {'var(--success)' if gpa >= 3.0 else 'var(--warning)' if gpa >= 2.0 else 'var(--danger)'};">{gpa:.2f}</div>
+                            <div style="color: var(--text-secondary);">Current GPA</div>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    grades_df = get_student_grades(student_id)
+                    if not grades_df.empty:
+                        with st.expander("Recent Grades", expanded=False):
+                            for _, grade in grades_df.head(5).iterrows():
+                                pct = grade.get('PERCENTAGE', 0) or 0
+                                st.markdown(f"""
+                                <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid var(--border);">
+                                    <span>{grade['SUBJECT']} - {grade['ASSIGNMENT_NAME']}</span>
+                                    <span style="font-weight: 600; color: {'var(--success)' if pct >= 70 else 'var(--danger)'};">{pct:.0f}%</span>
                                 </div>
-                                <div class="student-score good">+{student['SENTIMENT_CHANGE']:.2f}</div>
+                                """, unsafe_allow_html=True)
+                    
+                    # Notes
+                    st.markdown('<div class="section-title" style="margin-top: 1.5rem;">Recent Notes</div>', unsafe_allow_html=True)
+                    notes_df = get_student_notes(student_id)
+                    if not notes_df.empty:
+                        for _, note in notes_df.head(5).iterrows():
+                            sentiment = note.get('SENTIMENT_SCORE', 0) or 0
+                            sent_icon = "😊" if sentiment > 0.2 else "😟" if sentiment < -0.2 else "😐"
+                            is_risk = sentiment < -0.5
+                            st.markdown(f"""
+                            <div class="card" style="margin-bottom: 0.75rem; {'border-left: 3px solid var(--danger);' if is_risk else ''}">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                    <span class="badge badge-accent">{note.get('NOTE_CATEGORY', 'Note')}</span>
+                                    <span>{sent_icon}</span>
+                                </div>
+                                <div style="color: var(--text-primary); font-size: 0.9rem;">{str(note['NOTE_TEXT'])[:150]}{'...' if len(str(note['NOTE_TEXT'])) > 150 else ''}</div>
                             </div>
                             """, unsafe_allow_html=True)
+                    else:
+                        st.info("No notes recorded yet")
+            else:
+                st.warning(f"Student not found (ID: {student_id})")
+                if st.button("← Back to Students"):
+                    st.session_state.selected_student_id = None
+                    st.rerun()
+        
+        else:
+            # STUDENT LIST VIEW
+            st.markdown(f'<div class="page-header">{ICONS["users"]} Students</div>', unsafe_allow_html=True)
+            st.markdown('<div class="page-subtitle">Student analytics, early warnings, and sentiment trends</div>', unsafe_allow_html=True)
+            
+            # Tabs for sub-sections
+            tab1, tab2, tab3, tab4 = st.tabs(["👥 All Students", "📊 At-Risk", "⚡ Early Warnings", "📈 Sentiment"])
+            
+            with tab1:
+                # ALL STUDENTS with search and filters
+                all_students_df = get_all_students()
+                
+                if not all_students_df.empty:
+                    # Search and filter row
+                    col_search, col_grade = st.columns([2, 1])
+                    with col_search:
+                        search_query = st.text_input("🔍 Search students", placeholder="Type name to search...", key="student_search", label_visibility="collapsed")
+                    with col_grade:
+                        grade_levels = sorted(all_students_df['GRADE_LEVEL'].dropna().unique().tolist())
+                        grade_options = ["All Grades"] + [f"Grade {int(g)}" for g in grade_levels]
+                        selected_grade = st.selectbox("Filter by Grade", grade_options, key="grade_filter", label_visibility="collapsed")
+                    
+                    # Apply filters
+                    filtered_df = all_students_df.copy()
+                    if search_query:
+                        filtered_df = filtered_df[filtered_df['STUDENT_NAME'].str.lower().str.contains(search_query.lower())]
+                    if selected_grade != "All Grades":
+                        grade_num = int(selected_grade.replace("Grade ", ""))
+                        filtered_df = filtered_df[filtered_df['GRADE_LEVEL'] == grade_num]
+                    
+                    # Legend and count
+                    st.markdown(f"""
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin: 1rem 0;">
+                        <span style="color: var(--text-secondary);">Showing {len(filtered_df)} of {len(all_students_df)} students</span>
+                        <div style="display: flex; gap: 1rem; font-size: 0.8rem; color: var(--text-secondary);">
+                            <span>🟢 Low Risk (0-49)</span>
+                            <span>🟡 Medium (50-69)</span>
+                            <span>🔴 High Risk (70+)</span>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    # Student list - 2 column grid
+                    cols = st.columns(2)
+                    for idx, (_, student) in enumerate(filtered_df.iterrows()):
+                        risk_score = student.get('RISK_SCORE', 0) or 0
+                        risk_class = "critical" if risk_score >= 70 else "warning" if risk_score >= 50 else "good"
+                        risk_icon = "🔴" if risk_score >= 70 else "🟡" if risk_score >= 50 else "🟢"
+                        risk_label = "High Risk" if risk_score >= 70 else "Medium" if risk_score >= 50 else "Low Risk"
+                        attendance = student.get('ATTENDANCE_RATE', 0) or 0
+                        gpa = student.get('CURRENT_GPA', 0) or 0
+                        
+                        with cols[idx % 2]:
+                            st.markdown(f"""
+                            <div class="student-card" style="flex-direction: column; align-items: stretch; padding: 1rem;">
+                                <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.75rem;">
+                                    <div class="student-avatar {risk_class}" style="width: 44px; height: 44px;">{risk_icon}</div>
+                                    <div style="flex: 1;">
+                                        <div class="student-name">{student['STUDENT_NAME']}</div>
+                                        <div class="student-meta">Grade {int(student['GRADE_LEVEL'])}</div>
+                                    </div>
+                                    <div class="student-score {risk_class}" style="padding: 0.4rem 0.75rem; font-size: 1rem;">{int(risk_score)}</div>
+                                </div>
+                                <div style="display: flex; gap: 0.5rem; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
+                                    <span>📊 {attendance:.0f}% Att</span>
+                                    <span>·</span>
+                                    <span>📚 {gpa:.1f} GPA</span>
+                                    <span>·</span>
+                                    <span class="badge badge-{'danger' if risk_score >= 70 else 'warning' if risk_score >= 50 else 'success'}" style="font-size: 0.7rem;">{risk_label}</span>
+                                </div>
+                            </div>
+                            """, unsafe_allow_html=True)
+                            if st.button("View Profile →", key=f"all_{student['STUDENT_ID']}", use_container_width=True):
+                                st.session_state.selected_student_id = student['STUDENT_ID']
+                                st.rerun()
                 else:
-                    st.info("Add teacher observations to see sentiment trends.")
-            except Exception as e:
-                st.info("Sentiment tracking ready - add observations to see trends.")
+                    # Empty state - prompt to import data
+                    st.markdown(f"""
+                    <div class="card" style="text-align: center; padding: 3rem; background: linear-gradient(135deg, var(--accent-light) 0%, var(--bg-card) 100%);">
+                        <div style="font-size: 3rem; margin-bottom: 1rem;">{ICONS['users']}</div>
+                        <div style="font-size: 1.25rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.5rem;">No Students Yet</div>
+                        <div style="color: var(--text-secondary); margin-bottom: 1.5rem;">Import your student roster to start tracking and supporting your students</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    if st.button("📤 Go to Import Page", key="import_from_students", use_container_width=True, type="primary"):
+                        st.session_state.page = "upload"
+                        st.rerun()
+            
+            with tab2:
+                # ANALYTICS CONTENT
+                try:
+                    metrics = get_metrics()
+                    
+                    # Check if there are no students - show import prompt
+                    if metrics['TOTAL_STUDENTS'] == 0:
+                        st.markdown(f"""
+                        <div class="card" style="text-align: center; padding: 3rem; background: linear-gradient(135deg, var(--accent-light) 0%, var(--bg-card) 100%);">
+                            <div style="font-size: 3rem; margin-bottom: 1rem;">{ICONS['chart']}</div>
+                            <div style="font-size: 1.25rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.5rem;">No Data to Analyze</div>
+                            <div style="color: var(--text-secondary); margin-bottom: 1.5rem;">Import student data to see risk analytics and identify students who need support</div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        if st.button("📤 Go to Import Page", key="import_from_atrisk", use_container_width=True, type="primary"):
+                            st.session_state.page = "upload"
+                            st.rerun()
+                    else:
+                        col1, col2, col3, col4 = st.columns(4)
+                        with col1:
+                            st.markdown(f"""
+                            <div class="stat-card purple">
+                                <div class="stat-card-icon">👥</div>
+                                <div class="stat-card-content">
+                                    <div class="stat-card-value">{metrics['TOTAL_STUDENTS']}</div>
+                                    <div class="stat-card-label">Students</div>
+                                </div>
+                            </div>
+                            """, unsafe_allow_html=True)
+                        with col2:
+                            st.markdown(f"""
+                            <div class="stat-card orange">
+                                <div class="stat-card-icon">🔴</div>
+                                <div class="stat-card-content">
+                                    <div class="stat-card-value">{metrics['CRITICAL']}</div>
+                                    <div class="stat-card-label">Critical</div>
+                                </div>
+                            </div>
+                            """, unsafe_allow_html=True)
+                        with col3:
+                            st.markdown(f"""
+                            <div class="stat-card pink">
+                                <div class="stat-card-icon">🟡</div>
+                                <div class="stat-card-content">
+                                    <div class="stat-card-value">{metrics['HIGH_RISK']}</div>
+                                    <div class="stat-card-label">High Risk</div>
+                                </div>
+                            </div>
+                            """, unsafe_allow_html=True)
+                        with col4:
+                            st.markdown(f"""
+                            <div class="stat-card green">
+                                <div class="stat-card-icon">📚</div>
+                                <div class="stat-card-content">
+                                    <div class="stat-card-value">{metrics['AVG_GPA']}</div>
+                                    <div class="stat-card-label">Avg GPA</div>
+                                </div>
+                            </div>
+                            """, unsafe_allow_html=True)
+                        
+                        st.markdown("<br>", unsafe_allow_html=True)
+                        
+                        # At-risk student list with clickable cards
+                        st.markdown('<div class="section-title">At-Risk Students</div>', unsafe_allow_html=True)
+                        st.markdown('<div style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1rem;">Click a student to view details</div>', unsafe_allow_html=True)
+                        try:
+                            at_risk_df = get_at_risk_students()
+                            if not at_risk_df.empty:
+                                for idx, student in at_risk_df.iterrows():
+                                    risk_class = "critical" if student['RISK_SCORE'] >= 70 else "warning" if student['RISK_SCORE'] >= 50 else "good"
+                                    risk_icon = "🔴" if student['RISK_SCORE'] >= 70 else "🟡" if student['RISK_SCORE'] >= 50 else "🟢"
+                                    
+                                    col_card, col_btn = st.columns([6, 1])
+                                    with col_card:
+                                        st.markdown(f"""
+                                        <div class="student-card" style="cursor: pointer;">
+                                            <div class="student-avatar {risk_class}">{risk_icon}</div>
+                                            <div class="student-info">
+                                                <div class="student-name">{student['STUDENT_NAME']}</div>
+                                                <div class="student-meta">Grade {int(student['GRADE_LEVEL'])} · Attendance: {student['ATTENDANCE_RATE']}% · GPA: {student['CURRENT_GPA']:.1f}</div>
+                                            </div>
+                                            <div class="student-score {risk_class}">{int(student['RISK_SCORE'])}</div>
+                                        </div>
+                                        """, unsafe_allow_html=True)
+                                    with col_btn:
+                                        if st.button("View", key=f"view_{student['STUDENT_ID']}", use_container_width=True):
+                                            st.session_state.selected_student_id = student['STUDENT_ID']
+                                            st.rerun()
+                            else:
+                                st.success("🎉 No at-risk students!")
+                        except Exception as e:
+                            st.warning(f"Could not load data: {e}")
+                except Exception as e:
+                    st.error(f"Error loading metrics: {e}")
+            
+            with tab3:
+                # EARLY WARNINGS CONTENT
+                st.markdown("""
+                <div class="info-tip">
+                    ⚡ Students showing warning signs before becoming at-risk. Early intervention can prevent escalation.
+                </div>
+                """, unsafe_allow_html=True)
+                
+                try:
+                    warning_df = get_early_warning_students()
+                    if not warning_df.empty:
+                        for idx, student in warning_df.iterrows():
+                            indicators = []
+                            if student.get('ATTENDANCE_DECLINING'): indicators.append("📉 Attendance declining")
+                            if student.get('GRADES_DROPPING'): indicators.append("📚 Grades dropping")
+                            if student.get('NEGATIVE_SENTIMENT'): indicators.append("😟 Negative sentiment")
+                            
+                            col_card, col_btn = st.columns([6, 1])
+                            with col_card:
+                                st.markdown(f"""
+                                <div class="student-card">
+                                    <div class="student-avatar warning">⚠️</div>
+                                    <div class="student-info">
+                                        <div class="student-name">{student['STUDENT_NAME']}</div>
+                                        <div class="student-meta">Grade {int(student['GRADE_LEVEL'])} · {' · '.join(indicators) if indicators else 'Multiple indicators'}</div>
+                                    </div>
+                                    <div class="student-score warning">{student['EARLY_WARNING_SCORE']:.0f}</div>
+                                </div>
+                                """, unsafe_allow_html=True)
+                            with col_btn:
+                                if st.button("View", key=f"warn_{student['STUDENT_ID']}", use_container_width=True):
+                                    st.session_state.selected_student_id = student['STUDENT_ID']
+                                    st.rerun()
+                    else:
+                        st.success("🎉 No early warning signs detected!")
+                except Exception as e:
+                    st.info("Early warning system ready - data will appear as patterns emerge.")
+            
+            with tab4:
+                # SENTIMENT TRENDS CONTENT
+                st.markdown("""
+                <div class="info-tip">
+                    📈 Track how teacher observations about students change over time.
+                </div>
+                """, unsafe_allow_html=True)
+                
+                try:
+                    sentiment_df = get_sentiment_summary()
+                    if not sentiment_df.empty:
+                        # Show declining sentiment first
+                        declining = sentiment_df[sentiment_df['TREND'] == 'Declining']
+                        if not declining.empty:
+                            st.markdown('<div class="section-title" style="color: var(--danger);">⚠️ Declining Sentiment</div>', unsafe_allow_html=True)
+                            for idx, student in declining.iterrows():
+                                col_card, col_btn = st.columns([6, 1])
+                                with col_card:
+                                    st.markdown(f"""
+                                    <div class="student-card">
+                                        <div class="student-avatar critical">📉</div>
+                                        <div class="student-info">
+                                            <div class="student-name">{student['STUDENT_NAME']}</div>
+                                            <div class="student-meta">Sentiment declining</div>
+                                        </div>
+                                        <div class="student-score critical">{student['SENTIMENT_CHANGE']:.2f}</div>
+                                    </div>
+                                    """, unsafe_allow_html=True)
+                                with col_btn:
+                                    if st.button("View", key=f"sent_dec_{student['STUDENT_ID']}", use_container_width=True):
+                                        st.session_state.selected_student_id = student['STUDENT_ID']
+                                        st.rerun()
+                        
+                        improving = sentiment_df[sentiment_df['TREND'] == 'Improving']
+                        if not improving.empty:
+                            st.markdown('<div class="section-title" style="color: var(--success); margin-top: 1rem;">✨ Improving Sentiment</div>', unsafe_allow_html=True)
+                            for idx, student in improving.iterrows():
+                                col_card, col_btn = st.columns([6, 1])
+                                with col_card:
+                                    st.markdown(f"""
+                                    <div class="student-card">
+                                        <div class="student-avatar good">📈</div>
+                                        <div class="student-info">
+                                            <div class="student-name">{student['STUDENT_NAME']}</div>
+                                            <div class="student-meta">Sentiment improving</div>
+                                        </div>
+                                        <div class="student-score good">+{student['SENTIMENT_CHANGE']:.2f}</div>
+                                    </div>
+                                    """, unsafe_allow_html=True)
+                                with col_btn:
+                                    if st.button("View", key=f"sent_imp_{student['STUDENT_ID']}", use_container_width=True):
+                                        st.session_state.selected_student_id = student['STUDENT_ID']
+                                        st.rerun()
+                    else:
+                        st.info("Add teacher observations to see sentiment trends.")
+                except Exception as e:
+                    st.info("Sentiment tracking ready - add observations to see trends.")
 
     # ============================================
     # PAGE: NOTES (Observations + Alerts + AI Insights)
     # ============================================
     
     elif page == "notes":
-        st.markdown('<div class="page-header">📝 Notes & Alerts</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="page-header">{ICONS["notes"]} Notes & Alerts</div>', unsafe_allow_html=True)
         st.markdown('<div class="page-subtitle">Teacher observations, counselor alerts, and AI insights</div>', unsafe_allow_html=True)
         
         # Tabs for sub-sections
@@ -1581,7 +2290,7 @@ with main_col:
     # ============================================
     
     elif page == "interventions":
-        st.markdown('<div class="page-header">🎯 Interventions</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="page-header">{ICONS["target"]} Interventions</div>', unsafe_allow_html=True)
         st.markdown('<div class="page-subtitle">Create success plans and track intervention outcomes</div>', unsafe_allow_html=True)
         
         # Tabs for sub-sections
@@ -1729,7 +2438,7 @@ with main_col:
     # ============================================
     
     elif page == "upload":
-        st.markdown('<div class="page-header">📤 Data Management</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="page-header">{ICONS["upload"]} Data Management</div>', unsafe_allow_html=True)
         st.markdown('<div class="page-subtitle">Import, export, and manage your student data</div>', unsafe_allow_html=True)
         
         # Tabs for Import, Export, and Templates
@@ -2066,7 +2775,7 @@ with main_col:
     # ============================================
     
     elif page == "analytics":
-        st.markdown('<div class="page-header">📊 Analytics</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="page-header">{ICONS["chart"]} Analytics</div>', unsafe_allow_html=True)
         st.markdown('<div class="page-subtitle">Detailed insights and trends</div>', unsafe_allow_html=True)
         
         # Metrics row
@@ -2392,7 +3101,7 @@ with main_col:
     # ============================================
     
     elif page == "alerts":
-        st.markdown('<div class="page-header">🔔 Counselor Alert Queue</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="page-header">{ICONS["bell"]} Counselor Alert Queue</div>', unsafe_allow_html=True)
         st.markdown('<div class="page-subtitle">High-risk notes requiring review</div>', unsafe_allow_html=True)
         
         # Info banner
@@ -2510,7 +3219,7 @@ with main_col:
     # ============================================
     
     elif page == "insights":
-        st.markdown('<div class="page-header">🧠 AI Insights</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="page-header">{ICONS["brain"]} AI Insights</div>', unsafe_allow_html=True)
         st.markdown('<div class="page-subtitle">See the bigger picture across teacher observations</div>', unsafe_allow_html=True)
         
         # Info banner
@@ -2648,7 +3357,7 @@ with main_col:
     # ============================================
     
     elif page == "warnings":
-        st.markdown('<div class="page-header">⚡ Early Warnings</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="page-header">{ICONS["lightning"]} Early Warnings</div>', unsafe_allow_html=True)
         st.markdown('<div class="page-subtitle">Students showing warning signs before they become at-risk</div>', unsafe_allow_html=True)
         
         st.markdown("""
@@ -2761,7 +3470,7 @@ with main_col:
     # ============================================
     
     elif page == "sentiment":
-        st.markdown('<div class="page-header">📈 Sentiment Trends</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="page-header">{ICONS["trending"]} Sentiment Trends</div>', unsafe_allow_html=True)
         st.markdown('<div class="page-subtitle">Track how teacher observations change over time</div>', unsafe_allow_html=True)
         
         try:
@@ -3712,7 +4421,7 @@ with main_col:
     # ============================================
     
     elif page == "settings":
-        st.markdown('<div class="page-header">⚙️ System Status</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="page-header">{ICONS["settings"]} System Status</div>', unsafe_allow_html=True)
         st.markdown('<div class="page-subtitle">Monitor data pipelines and system health</div>', unsafe_allow_html=True)
         
         col1, col2, col3 = st.columns(3)

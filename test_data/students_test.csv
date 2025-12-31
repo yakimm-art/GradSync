@@ -1,4 +1,11 @@
-student_id,first_name,last_name,grade_level,enrollment_date,parent_email
-STU011,Alex,Thompson,9,2024-08-15,thompson@email.com
-STU012,Maria,Santos,10,2023-08-15,santos@email.com
-STU013,David,Lee,11,2022-08-15,lee.family@email.com
+student_id,first_name,last_name,grade_level,enrollment_date,parent_email,parent_language
+STU001,Emma,Johnson,9,2024-08-15,johnson.parent@email.com,English
+STU002,Liam,Martinez,9,2024-08-15,martinez.familia@email.com,Spanish
+STU003,Sophia,Williams,10,2023-08-15,williams.home@email.com,English
+STU004,Noah,Brown,10,2023-08-15,brown.parents@email.com,English
+STU005,Olivia,Garcia,11,2022-08-15,garcia.casa@email.com,Spanish
+STU006,James,Davis,11,2022-08-15,davis.family@email.com,English
+STU007,Ava,Rodriguez,12,2021-08-15,rodriguez.padres@email.com,Spanish
+STU008,William,Wilson,12,2021-08-15,wilson.home@email.com,English
+STU009,Isabella,Chen,9,2024-08-15,chen.family@email.com,Chinese
+STU010,Benjamin,Kim,10,2023-08-15,kim.parents@email.com,Korean

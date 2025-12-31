@@ -1,6 +1,31 @@
-student_id,course,assignment,score,max_score,date
-STU011,Algebra I,Quiz 1,85,100,2024-12-15
-STU011,English 9,Essay 1,78,100,2024-12-16
-STU012,Biology,Lab Report,92,100,2024-12-18
-STU012,Geometry,Test 1,88,100,2024-12-17
-STU013,US History,Project,95,100,2024-12-19
+student_id,course_name,assignment_name,score,max_score,grade_date
+STU001,Math,Test 1,95,100,2024-12-20
+STU001,English,Essay 1,88,100,2024-12-18
+STU001,Science,Lab Report,94,100,2024-12-22
+STU002,Math,Test 1,62,100,2024-12-20
+STU002,English,Essay 1,65,100,2024-12-18
+STU002,Science,Lab Report,55,100,2024-12-22
+STU003,Math,Test 1,91,100,2024-12-20
+STU003,English,Essay 1,93,100,2024-12-18
+STU003,Science,Lab Report,90,100,2024-12-22
+STU004,Math,Test 1,78,100,2024-12-20
+STU004,English,Essay 1,80,100,2024-12-18
+STU004,Science,Lab Report,72,100,2024-12-22
+STU005,Math,Test 1,45,100,2024-12-20
+STU005,English,Essay 1,50,100,2024-12-18
+STU005,Science,Lab Report,38,100,2024-12-22
+STU006,Math,Test 1,76,100,2024-12-20
+STU006,English,Essay 1,74,100,2024-12-18
+STU006,Science,Lab Report,78,100,2024-12-22
+STU007,Math,Test 1,35,100,2024-12-20
+STU007,English,Essay 1,42,100,2024-12-18
+STU007,Science,Lab Report,30,100,2024-12-22
+STU008,Math,Test 1,68,100,2024-12-20
+STU008,English,Essay 1,65,100,2024-12-18
+STU008,Science,Lab Report,70,100,2024-12-22
+STU009,Math,Test 1,96,100,2024-12-20
+STU009,English,Essay 1,92,100,2024-12-18
+STU009,Science,Lab Report,98,100,2024-12-22
+STU010,Math,Test 1,82,100,2024-12-20
+STU010,English,Essay 1,85,100,2024-12-18
+STU010,Science,Lab Report,80,100,2024-12-22

@@ -1,7 +1,22 @@
+# AWS credentials/configs
 aws/
+
+# Python
 .venv/
 __pycache__/
 *.pyc
 .env
 .hypothesis/
 .pytest_cache/
+
+# IDE/Editor
+.kiro/
+.amazonq/
+.vscode/
+.idea/
+
+# OpenSpec (development planning)
+openspec/
+
+# Agents instructions
+AGENTS.md
