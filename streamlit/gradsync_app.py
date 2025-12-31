@@ -23,392 +23,419 @@ st.set_page_config(
 # Initialize session state
 if 'page' not in st.session_state:
     st.session_state.page = "dashboard"
+if 'theme' not in st.session_state:
+    st.session_state.theme = "light"
 
-# Dark theme CSS
+# Theme-aware CSS
+def get_theme_css():
+    if st.session_state.theme == "dark":
+        return """
+        <style>
+            :root {
+                --bg-primary: #0f0f23;
+                --bg-secondary: #1a1a2e;
+                --bg-card: #16213e;
+                --text-primary: #eaeaea;
+                --text-secondary: #a0a0a0;
+                --text-muted: #606060;
+                --accent: #6c5ce7;
+                --accent-light: rgba(108, 92, 231, 0.15);
+                --success: #00d26a;
+                --warning: #ffc048;
+                --danger: #ff6b6b;
+                --border: #2a2a4a;
+                --nav-bg: #1a1a2e;
+            }
+            
+            /* Dark mode button styling */
+            .stButton > button {
+                background: #2a2a4a !important;
+                color: #eaeaea !important;
+                border: 1px solid #3a3a5a !important;
+            }
+            .stButton > button:hover {
+                background: #6c5ce7 !important;
+                border-color: #6c5ce7 !important;
+            }
+        </style>
+        """
+    else:
+        return """
+        <style>
+            :root {
+                --bg-primary: #f5f7fb;
+                --bg-secondary: #ffffff;
+                --bg-card: #ffffff;
+                --text-primary: #2d3436;
+                --text-secondary: #636e72;
+                --text-muted: #b2bec3;
+                --accent: #6c5ce7;
+                --accent-light: rgba(108, 92, 231, 0.1);
+                --success: #00b894;
+                --warning: #fdcb6e;
+                --danger: #e17055;
+                --border: #e9ecef;
+                --nav-bg: #6c5ce7;
+            }
+            
+            /* Light mode button styling */
+            .stButton > button {
+                background: #ffffff !important;
+                color: #2d3436 !important;
+                border: 1px solid #e9ecef !important;
+            }
+            .stButton > button:hover {
+                background: #6c5ce7 !important;
+                color: #ffffff !important;
+                border-color: #6c5ce7 !important;
+            }
+            
+            /* Light mode inputs */
+            .stTextArea textarea, .stTextInput input, .stSelectbox > div > div {
+                background: #ffffff !important;
+                color: #2d3436 !important;
+                border: 1px solid #e9ecef !important;
+            }
+            
+            /* Light mode file uploader */
+            [data-testid="stFileUploader"] {
+                background: #ffffff !important;
+            }
+            [data-testid="stFileUploader"] > div {
+                background: #ffffff !important;
+            }
+            [data-testid="stFileUploader"] section {
+                background: #f8f9fa !important;
+                border: 2px dashed #e9ecef !important;
+            }
+            [data-testid="stFileUploader"] section > div {
+                color: #636e72 !important;
+            }
+            [data-testid="stFileUploader"] button {
+                background: #6c5ce7 !important;
+                color: #ffffff !important;
+            }
+            
+            /* Light mode expander */
+            .streamlit-expanderHeader {
+                background: #ffffff !important;
+                color: #2d3436 !important;
+            }
+        </style>
+        """
+
+st.markdown(get_theme_css(), unsafe_allow_html=True)
+
+# Main CSS (theme-aware using CSS variables)
 st.markdown("""
 <style>
-    /* Main app dark theme */
+    /* Hide Streamlit defaults */
+    [data-testid="stSidebar"] { display: none; }
+    header[data-testid="stHeader"] { display: none; }
+    
+    /* Main app */
     .stApp {
-        background-color: #0a0a0a;
+        background-color: var(--bg-primary);
     }
     
-    /* Hide sidebar completely */
-    [data-testid="stSidebar"] {
-        display: none;
-    }
-    
-    /* Hide default header */
-    header[data-testid="stHeader"] {
-        display: none;
-    }
-    
-    /* Make all text visible */
     .stApp, .stApp p, .stApp span, .stApp label, .stApp div {
-        color: #e0e0e0;
+        color: var(--text-primary);
     }
     
-    /* Left navigation panel */
-    .nav-panel {
-        background: #111111;
-        border-radius: 12px;
-        padding: 1.5rem 1rem;
-        height: calc(100vh - 100px);
-        position: sticky;
-        top: 20px;
+    /* Modern card style */
+    .card {
+        background: var(--bg-card);
+        border-radius: 16px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        border: 1px solid var(--border);
+        margin-bottom: 1rem;
     }
     
-    /* Logo */
-    .nav-logo {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding-bottom: 1.5rem;
-        margin-bottom: 1.5rem;
-        border-bottom: 1px solid #1a1a1a;
-    }
-    
-    .nav-logo-icon {
-        font-size: 1.5rem;
-    }
-    
-    .nav-logo-text {
-        color: #22c55e;
-        font-size: 1.2rem;
-        font-weight: 600;
-    }
-    
-    /* Nav section label */
-    .nav-section {
-        color: #505050;
-        font-size: 0.7rem;
+    .card-header {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        margin-bottom: 0.5rem;
         text-transform: uppercase;
-        letter-spacing: 1.5px;
-        margin: 1.5rem 0 0.75rem 0;
-        padding-left: 0.5rem;
+        letter-spacing: 0.5px;
     }
     
-    /* Nav items */
-    .nav-item {
+    .card-value {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+    
+    .card-value.success { color: var(--success); }
+    .card-value.warning { color: var(--warning); }
+    .card-value.danger { color: var(--danger); }
+    .card-value.accent { color: var(--accent); }
+    
+    /* Stat cards with colored backgrounds */
+    .stat-card {
+        border-radius: 16px;
+        padding: 1.25rem;
+        color: white;
+        position: relative;
+        overflow: visible;
+        min-height: 180px;
         display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 0.75rem 1rem;
-        margin: 4px 0;
-        border-radius: 8px;
-        color: #808080;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        border: 1px solid transparent;
+        flex-direction: column;
+        justify-content: space-between;
     }
     
-    .nav-item:hover {
-        background: rgba(34, 197, 94, 0.08);
-        color: #a0a0a0;
+    .stat-card.purple { background: linear-gradient(135deg, #6c5ce7 0%, #a29bfe 100%); }
+    .stat-card.orange { background: linear-gradient(135deg, #f39c12 0%, #f1c40f 100%); }
+    .stat-card.pink { background: linear-gradient(135deg, #e84393 0%, #fd79a8 100%); }
+    .stat-card.green { background: linear-gradient(135deg, #00b894 0%, #55efc4 100%); }
+    
+    .stat-card-icon {
+        font-size: 2rem;
     }
     
-    .nav-item.active {
-        background: rgba(34, 197, 94, 0.12);
-        color: #22c55e;
-        border-color: rgba(34, 197, 94, 0.3);
-    }
-    
-    .nav-item-icon {
-        font-size: 1.1rem;
-        width: 24px;
-        text-align: center;
-    }
-    
-    .nav-item-text {
-        font-size: 0.9rem;
-    }
-    
-    /* User profile */
-    .user-profile {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 1rem;
+    .stat-card-content {
         margin-top: auto;
-        border-top: 1px solid #1a1a1a;
-        position: absolute;
-        bottom: 1rem;
-        left: 1rem;
-        right: 1rem;
     }
     
-    .user-avatar {
-        width: 36px;
-        height: 36px;
-        background: #1a1a1a;
-        border-radius: 8px;
+    .stat-card-value {
+        font-size: 2rem;
+        font-weight: 700;
+        line-height: 1.2;
+    }
+    
+    .stat-card-label {
+        font-size: 0.85rem;
+        opacity: 0.9;
+        margin-top: 0.25rem;
+    }
+    
+    /* Progress ring */
+    .progress-ring {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: conic-gradient(var(--success) var(--progress), var(--border) 0);
         display: flex;
         align-items: center;
         justify-content: center;
-        color: #505050;
-        font-size: 1.1rem;
+        position: relative;
     }
     
-    .user-name {
-        color: #e0e0e0;
-        font-size: 0.9rem;
-        font-weight: 500;
-    }
-    
-    .user-status {
-        color: #22c55e;
-        font-size: 0.75rem;
+    .progress-ring-inner {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: var(--bg-card);
         display: flex;
         align-items: center;
-        gap: 6px;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 1rem;
+        color: var(--text-primary);
     }
     
-    /* Page header */
-    .page-header {
-        color: #e0e0e0;
-        font-size: 1.3rem;
-        font-weight: 500;
+    /* Student card */
+    .student-card {
+        background: var(--bg-card);
+        border-radius: 12px;
+        padding: 1rem;
+        border: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 0.75rem;
+        transition: all 0.2s ease;
+    }
+    
+    .student-card:hover {
+        box-shadow: 0 4px 12px rgba(108, 92, 231, 0.15);
+        border-color: var(--accent);
+    }
+    
+    .student-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+    
+    .student-avatar.critical { background: rgba(231, 76, 60, 0.15); }
+    .student-avatar.warning { background: rgba(241, 196, 15, 0.15); }
+    .student-avatar.good { background: rgba(0, 184, 148, 0.15); }
+    
+    .student-info { flex: 1; }
+    .student-name { font-weight: 600; color: var(--text-primary); }
+    .student-meta { font-size: 0.8rem; color: var(--text-secondary); }
+    
+    .student-score {
+        font-size: 1.25rem;
+        font-weight: 700;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+    }
+    
+    .student-score.critical { background: rgba(231, 76, 60, 0.15); color: #e74c3c; }
+    .student-score.warning { background: rgba(241, 196, 15, 0.15); color: #f39c12; }
+    .student-score.good { background: rgba(0, 184, 148, 0.15); color: #00b894; }
+    
+    /* Navigation */
+    .nav-container {
+        background: var(--nav-bg);
+        border-radius: 20px;
+        padding: 1.5rem 1rem;
+        min-height: calc(100vh - 2rem);
+    }
+    
+    .nav-logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .nav-logo-icon { font-size: 1.5rem; }
+    .nav-logo-text { color: white; font-size: 1.2rem; font-weight: 700; }
+    
+    /* Welcome section */
+    .welcome-section {
+        margin-bottom: 2rem;
+    }
+    
+    .welcome-title {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--text-primary);
         margin-bottom: 0.25rem;
     }
     
-    .page-subtitle {
-        color: #505050;
-        font-size: 0.85rem;
-        margin-bottom: 1.5rem;
+    .welcome-subtitle {
+        color: var(--text-secondary);
+        font-size: 0.95rem;
     }
     
-    /* Metric cards */
-    .metric-box {
-        background: #111111;
-        border: 1px solid #1a1a1a;
-        border-radius: 10px;
-        padding: 1.25rem;
-    }
-    
-    .metric-label {
-        color: #606060;
-        font-size: 0.7rem;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 0.5rem;
-    }
-    
-    .metric-value {
-        color: #e0e0e0;
-        font-size: 2rem;
+    /* Section title */
+    .section-title {
+        font-size: 1.1rem;
         font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 1rem;
     }
     
-    .metric-value.green { color: #22c55e; }
-    .metric-value.yellow { color: #eab308; }
-    .metric-value.red { color: #ef4444; }
+    /* Badge */
+    .badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
     
-    /* Data panel */
+    .badge-success { background: rgba(0, 184, 148, 0.15); color: var(--success); }
+    .badge-warning { background: rgba(253, 203, 110, 0.3); color: #e67e22; }
+    .badge-danger { background: rgba(231, 76, 60, 0.15); color: var(--danger); }
+    .badge-accent { background: var(--accent-light); color: var(--accent); }
+    
+    /* Quick action buttons */
+    .quick-action {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .quick-action:hover {
+        border-color: var(--accent);
+        box-shadow: 0 4px 12px rgba(108, 92, 231, 0.1);
+    }
+    
+    .quick-action-icon { font-size: 1.5rem; margin-bottom: 0.5rem; }
+    .quick-action-label { font-size: 0.85rem; color: var(--text-secondary); }
+    
+    /* Theme toggle */
+    .theme-toggle {
+        background: rgba(255,255,255,0.1);
+        border-radius: 20px;
+        padding: 0.5rem 1rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        color: white;
+        font-size: 0.85rem;
+    }
+    
+    /* Activity chart placeholder */
+    .chart-container {
+        background: var(--bg-card);
+        border-radius: 16px;
+        padding: 1.5rem;
+        border: 1px solid var(--border);
+    }
+    
+    /* Info tip */
+    .info-tip {
+        background: var(--accent-light);
+        border: 1px solid rgba(108, 92, 231, 0.2);
+        border-radius: 12px;
+        padding: 1rem;
+        color: var(--accent);
+        font-size: 0.9rem;
+    }
+    
+    /* Panel */
     .panel {
-        background: #111111;
-        border: 1px solid #1a1a1a;
-        border-radius: 10px;
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
         padding: 1.25rem;
         margin-bottom: 1rem;
     }
     
-    .panel-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding-bottom: 0.75rem;
-        margin-bottom: 0.75rem;
-        border-bottom: 1px solid #1a1a1a;
-    }
-    
     .panel-title {
-        color: #808080;
+        color: var(--text-secondary);
         font-size: 0.85rem;
-        font-weight: 500;
-    }
-    
-    .badge {
-        font-size: 0.65rem;
-        padding: 4px 10px;
-        border-radius: 6px;
-        text-transform: uppercase;
-        font-weight: 500;
-    }
-    
-    .badge-green {
-        background: rgba(34, 197, 94, 0.15);
-        color: #22c55e;
-    }
-    
-    .badge-red {
-        background: rgba(239, 68, 68, 0.15);
-        color: #ef4444;
-    }
-    
-    .badge-yellow {
-        background: rgba(234, 179, 8, 0.15);
-        color: #eab308;
-    }
-    
-    .badge-blue {
-        background: rgba(59, 130, 246, 0.15);
-        color: #3b82f6;
-    }
-    
-    /* Welcome banner */
-    .welcome-banner {
-        background: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(34, 197, 94, 0.05) 100%);
-        border: 1px solid rgba(34, 197, 94, 0.2);
-        border-radius: 12px;
-        padding: 1.25rem;
-        margin-bottom: 1.5rem;
-    }
-    
-    /* Info tooltip */
-    .info-tip {
-        background: rgba(59, 130, 246, 0.1);
-        border: 1px solid rgba(59, 130, 246, 0.2);
-        border-radius: 8px;
-        padding: 0.75rem 1rem;
-        margin: 0.5rem 0;
-        font-size: 0.85rem;
-        color: #93c5fd;
-    }
-    
-    /* Help text */
-    .help-text {
-        color: #606060;
-        font-size: 0.8rem;
-        margin-top: 0.25rem;
-    }
-    
-    /* Empty state */
-    .empty-state {
-        text-align: center;
-        padding: 2rem;
-        color: #606060;
-    }
-    
-    .empty-state-icon {
-        font-size: 2.5rem;
+        font-weight: 600;
         margin-bottom: 0.75rem;
     }
     
-    /* Action card */
-    .action-card {
-        background: #111111;
-        border: 1px solid #1a1a1a;
-        border-radius: 10px;
-        padding: 1rem;
-        text-align: center;
-        transition: all 0.2s ease;
-        cursor: pointer;
+    /* Form styling */
+    .stTextArea textarea, .stTextInput input, .stSelectbox > div > div {
+        background: var(--bg-secondary) !important;
+        border: 1px solid var(--border) !important;
+        border-radius: 10px !important;
+        color: var(--text-primary) !important;
     }
     
-    .action-card:hover {
-        border-color: rgba(34, 197, 94, 0.3);
-        background: rgba(34, 197, 94, 0.05);
-    }
-    
-    /* Student row */
-    .student-row {
-        display: flex;
-        align-items: center;
-        padding: 0.7rem 0;
-        border-bottom: 1px solid #151515;
-    }
-    
-    .student-row:last-child {
-        border-bottom: none;
-    }
-    
-    .risk-dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        margin-right: 12px;
-    }
-    
-    .risk-dot.critical { background: #ef4444; }
-    .risk-dot.high { background: #f59e0b; }
-    .risk-dot.moderate { background: #eab308; }
-    
-    .student-name {
-        flex: 1;
-        color: #d0d0d0;
-        font-size: 0.9rem;
-    }
-    
-    .student-info {
-        color: #606060;
-        font-size: 0.8rem;
-        margin-left: 1rem;
-    }
-    
-    /* Activity log */
-    .activity-item {
-        padding: 0.5rem 0;
-        border-bottom: 1px solid #151515;
-        color: #808080;
-        font-size: 0.85rem;
-    }
-    
-    /* Navigation buttons - dark style */
-    [data-testid="column"]:first-child .stButton > button {
-        background: transparent !important;
-        color: #808080 !important;
-        border: none !important;
-        border-radius: 8px !important;
-        font-weight: 400 !important;
-        padding: 0.75rem 1rem !important;
-        text-align: left !important;
-        justify-content: flex-start !important;
+    /* Button styling */
+    .stButton > button {
+        border-radius: 10px !important;
+        font-weight: 500 !important;
         transition: all 0.2s ease !important;
     }
     
-    [data-testid="column"]:first-child .stButton > button:hover {
-        background: rgba(34, 197, 94, 0.1) !important;
-        color: #22c55e !important;
+    /* Tabs */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 8px;
+        background: var(--bg-secondary);
+        padding: 0.5rem;
+        border-radius: 12px;
     }
     
-    [data-testid="column"]:first-child .stButton > button:focus {
-        background: rgba(34, 197, 94, 0.15) !important;
-        color: #22c55e !important;
-        box-shadow: none !important;
+    .stTabs [data-baseweb="tab"] {
+        border-radius: 8px;
+        color: var(--text-secondary);
     }
     
-    /* Action buttons - green style (for forms, etc) */
-    [data-testid="column"]:not(:first-child) .stButton > button,
-    form .stButton > button {
-        background: #22c55e !important;
-        color: #000 !important;
-        border: none !important;
-        border-radius: 8px !important;
-        font-weight: 500 !important;
-        padding: 0.6rem 1.5rem !important;
-    }
-    
-    [data-testid="column"]:not(:first-child) .stButton > button:hover,
-    form .stButton > button:hover {
-        background: #16a34a !important;
-    }
-    
-    /* Form inputs */
-    .stTextArea textarea, .stTextInput input, .stSelectbox > div > div {
-        background: #0d0d0d !important;
-        border: 1px solid #1a1a1a !important;
-        border-radius: 8px !important;
-        color: #e0e0e0 !important;
-    }
-    
-    .stSelectbox label, .stTextArea label, .stTextInput label {
-        color: #808080 !important;
-    }
-    
-    /* Divider */
-    hr {
-        border: none;
-        border-top: 1px solid #1a1a1a;
-        margin: 1.5rem 0;
+    .stTabs [aria-selected="true"] {
+        background: var(--accent) !important;
+        color: white !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -828,13 +855,21 @@ nav_col, main_col = st.columns([1, 4])
 with nav_col:
     # Logo
     st.markdown("""
-    <div style="display: flex; align-items: center; gap: 10px; padding: 0.5rem 0 1.5rem 0; border-bottom: 1px solid #1a1a1a; margin-bottom: 1rem;">
-        <span style="font-size: 1.3rem;">🎓</span>
-        <span style="color: #22c55e; font-size: 1.1rem; font-weight: 600;">GradSync</span>
+    <div style="display: flex; align-items: center; gap: 10px; padding: 1rem 0.5rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border);">
+        <span style="font-size: 1.5rem;">🎓</span>
+        <span style="color: var(--accent); font-size: 1.2rem; font-weight: 700;">GradSync</span>
     </div>
     """, unsafe_allow_html=True)
     
-    # Consolidated navigation (5 main items)
+    # Theme toggle
+    theme_label = "🌙 Dark" if st.session_state.theme == "light" else "☀️ Light"
+    if st.button(theme_label, key="theme_toggle", use_container_width=True):
+        st.session_state.theme = "dark" if st.session_state.theme == "light" else "light"
+        st.rerun()
+    
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # Navigation items
     nav_items = [
         ("🏠", "Dashboard", "dashboard"),
         ("👥", "Students", "students"),
@@ -848,28 +883,11 @@ with nav_col:
             st.session_state.page = key
             st.rerun()
     
-    # System section
-    st.markdown('<p style="color: #404040; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; margin: 1.5rem 0 0.5rem 0;">System</p>', unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
     
     if st.button("⚙️  Settings", key="nav_settings", use_container_width=True):
         st.session_state.page = "settings"
         st.rerun()
-    
-    # Spacer
-    st.markdown("<br><br><br>", unsafe_allow_html=True)
-    
-    # User profile
-    st.markdown("""
-    <div style="border-top: 1px solid #1a1a1a; padding-top: 1rem; margin-top: 1rem;">
-        <div style="display: flex; align-items: center; gap: 10px;">
-            <div style="width: 32px; height: 32px; background: #1a1a1a; border-radius: 6px; display: flex; align-items: center; justify-content: center;">👤</div>
-            <div>
-                <div style="color: #e0e0e0; font-size: 0.85rem;">Teacher</div>
-                <div style="color: #22c55e; font-size: 0.7rem;">● Active Session</div>
-            </div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
 
 
 # ============================================
@@ -880,146 +898,193 @@ with main_col:
     page = st.session_state.page
     
     # ============================================
-    # PAGE: OVERVIEW (Quick Summary)
+    # PAGE: DASHBOARD (Modern Design)
     # ============================================
     
     if page == "dashboard":
-        st.markdown('<div class="page-header">🏠 Welcome to GradSync</div>', unsafe_allow_html=True)
-        st.markdown('<div class="page-subtitle">Your student success dashboard</div>', unsafe_allow_html=True)
-        
-        # Welcome banner with guidance
+        # Welcome section
         st.markdown("""
-        <div class="welcome-banner">
-            <div style="display: flex; align-items: flex-start; gap: 12px;">
-                <span style="font-size: 1.5rem;">👋</span>
-                <div>
-                    <div style="color: #22c55e; font-weight: 500; margin-bottom: 0.25rem;">Good to see you!</div>
-                    <div style="color: #a0a0a0; font-size: 0.85rem;">Here's a quick look at how your students are doing. Students flagged as "at-risk" may need extra support based on their attendance and grades.</div>
-                </div>
-            </div>
+        <div class="welcome-section">
+            <div class="welcome-title">Hello, Teacher! 👋</div>
+            <div class="welcome-subtitle">Here's what's happening with your students today</div>
         </div>
         """, unsafe_allow_html=True)
         
-        # Metrics with explanations
-        try:
-            metrics = get_metrics()
-            
-            col1, col2, col3, col4 = st.columns(4)
-            
-            with col1:
-                st.markdown(f"""
-                <div class="metric-box">
-                    <div class="metric-label">Total Students</div>
-                    <div class="metric-value">{metrics['TOTAL_STUDENTS']}</div>
-                </div>
-                """, unsafe_allow_html=True)
-            
-            with col2:
-                st.markdown(f"""
-                <div class="metric-box">
-                    <div class="metric-label">Critical Risk</div>
-                    <div class="metric-value red">{metrics['CRITICAL']}</div>
-                </div>
-                """, unsafe_allow_html=True)
-            
-            with col3:
-                st.markdown(f"""
-                <div class="metric-box">
-                    <div class="metric-label">Avg Attendance</div>
-                    <div class="metric-value green">{metrics['AVG_ATTENDANCE']}%</div>
-                </div>
-                """, unsafe_allow_html=True)
-            
-            with col4:
-                st.markdown(f"""
-                <div class="metric-box">
-                    <div class="metric-label">Avg GPA</div>
-                    <div class="metric-value">{metrics['AVG_GPA']}</div>
-                </div>
-                """, unsafe_allow_html=True)
-        except Exception as e:
-            st.error(f"Error loading metrics: {e}")
+        # Main layout: Left content + Right sidebar
+        main_left, main_right = st.columns([2, 1])
         
-        st.markdown("<hr>", unsafe_allow_html=True)
-        
-        # Two columns
-        col_left, col_right = st.columns([2, 1])
-        
-        with col_left:
-            st.markdown("""
-            <div class="panel">
-                <div class="panel-header">
-                    <span class="panel-title">Students Requiring Attention</span>
-                    <span class="badge badge-red">Priority</span>
-                </div>
-            """, unsafe_allow_html=True)
+        with main_left:
+            # Metrics row with colored stat cards
+            try:
+                metrics = get_metrics()
+                
+                col1, col2, col3, col4 = st.columns(4)
+                
+                with col1:
+                    st.markdown(f"""
+                    <div class="stat-card purple">
+                        <div class="stat-card-icon">👥</div>
+                        <div class="stat-card-content">
+                            <div class="stat-card-value">{metrics['TOTAL_STUDENTS']}</div>
+                            <div class="stat-card-label">Students</div>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                with col2:
+                    st.markdown(f"""
+                    <div class="stat-card orange">
+                        <div class="stat-card-icon">⚠️</div>
+                        <div class="stat-card-content">
+                            <div class="stat-card-value">{metrics['CRITICAL']}</div>
+                            <div class="stat-card-label">At Risk</div>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                with col3:
+                    st.markdown(f"""
+                    <div class="stat-card green">
+                        <div class="stat-card-icon">📊</div>
+                        <div class="stat-card-content">
+                            <div class="stat-card-value">{metrics['AVG_ATTENDANCE']}%</div>
+                            <div class="stat-card-label">Attendance</div>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                with col4:
+                    st.markdown(f"""
+                    <div class="stat-card pink">
+                        <div class="stat-card-icon">📚</div>
+                        <div class="stat-card-content">
+                            <div class="stat-card-value">{metrics['AVG_GPA']}</div>
+                            <div class="stat-card-label">Avg GPA</div>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+            except Exception as e:
+                st.error(f"Error loading metrics: {e}")
+            
+            st.markdown("<br>", unsafe_allow_html=True)
+            
+            # Students needing attention
+            st.markdown('<div class="section-title">Students Needing Attention</div>', unsafe_allow_html=True)
             
             try:
                 at_risk_df = get_at_risk_students()
                 
                 if not at_risk_df.empty:
-                    for _, student in at_risk_df.head(5).iterrows():
-                        risk_class = "critical" if student['RISK_SCORE'] >= 70 else "high" if student['RISK_SCORE'] >= 50 else "moderate"
+                    for _, student in at_risk_df.head(4).iterrows():
+                        risk_class = "critical" if student['RISK_SCORE'] >= 70 else "warning" if student['RISK_SCORE'] >= 50 else "good"
+                        risk_icon = "🔴" if student['RISK_SCORE'] >= 70 else "🟡" if student['RISK_SCORE'] >= 50 else "🟢"
                         
                         st.markdown(f"""
-                        <div class="student-row">
-                            <div class="risk-dot {risk_class}"></div>
-                            <span class="student-name">{student['STUDENT_NAME']}</span>
-                            <span class="student-info">Grade {int(student['GRADE_LEVEL'])}</span>
-                            <span class="student-info">Risk: {student['RISK_SCORE']}</span>
+                        <div class="student-card">
+                            <div class="student-avatar {risk_class}">{risk_icon}</div>
+                            <div class="student-info">
+                                <div class="student-name">{student['STUDENT_NAME']}</div>
+                                <div class="student-meta">Grade {int(student['GRADE_LEVEL'])} · Attendance: {student['ATTENDANCE_RATE']}%</div>
+                            </div>
+                            <div class="student-score {risk_class}">{int(student['RISK_SCORE'])}</div>
                         </div>
                         """, unsafe_allow_html=True)
-                    st.markdown('<div style="text-align: center; padding-top: 0.5rem;"><a href="#" style="color: #22c55e; font-size: 0.85rem;">View all in Analytics →</a></div>', unsafe_allow_html=True)
                 else:
-                    st.success("🎉 All students are on track!")
+                    st.success("🎉 All students are doing great!")
             except Exception as e:
-                st.warning(f"Could not load students: {e}")
+                st.info("Loading student data...")
             
-            st.markdown("</div>", unsafe_allow_html=True)
-        
-        with col_right:
+            st.markdown("<br>", unsafe_allow_html=True)
+            
+            # Activity chart placeholder
+            st.markdown('<div class="section-title">Weekly Activity</div>', unsafe_allow_html=True)
             st.markdown("""
-            <div class="panel">
-                <div class="panel-header">
-                    <span class="panel-title">Recent Activity</span>
-                    <span class="badge badge-green">Live</span>
+            <div class="chart-container">
+                <div style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                    📈 Activity trends will appear here as data accumulates
                 </div>
+            </div>
             """, unsafe_allow_html=True)
+        
+        with main_right:
+            # Quick actions
+            st.markdown('<div class="section-title">Quick Actions</div>', unsafe_allow_html=True)
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("📝 Add Note", use_container_width=True):
+                    st.session_state.page = "notes"
+                    st.rerun()
+            with col2:
+                if st.button("🎯 New Plan", use_container_width=True):
+                    st.session_state.page = "interventions"
+                    st.rerun()
+            
+            st.markdown("<br>", unsafe_allow_html=True)
+            
+            # Recent alerts
+            st.markdown('<div class="section-title">Recent Alerts</div>', unsafe_allow_html=True)
             
             try:
-                recent = session.sql("""
-                    SELECT s.first_name, n.note_category, n.sentiment_score
-                    FROM APP.TEACHER_NOTES n
-                    JOIN RAW_DATA.STUDENTS s ON n.student_id = s.student_id
-                    ORDER BY n.created_at DESC LIMIT 5
-                """).to_pandas()
-                
-                if not recent.empty:
-                    for _, note in recent.iterrows():
-                        emoji = "😊" if note['SENTIMENT_SCORE'] > 0.3 else "😟" if note['SENTIMENT_SCORE'] < -0.3 else "😐"
-                        st.markdown(f'<div class="activity-item">{emoji} {note["FIRST_NAME"]} - {note["NOTE_CATEGORY"]}</div>', unsafe_allow_html=True)
+                alerts = get_counselor_alerts()
+                if not alerts.empty:
+                    for _, alert in alerts.head(3).iterrows():
+                        st.markdown(f"""
+                        <div class="card" style="padding: 1rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-weight: 500;">{alert['STUDENT_NAME']}</span>
+                                <span class="badge badge-danger">Alert</span>
+                            </div>
+                            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.5rem;">
+                                {alert['AI_CLASSIFICATION']}
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
                 else:
-                    st.caption("No recent activity")
+                    st.markdown("""
+                    <div class="card" style="text-align: center; padding: 1.5rem;">
+                        <div style="font-size: 2rem; margin-bottom: 0.5rem;">✅</div>
+                        <div style="color: var(--text-secondary);">No pending alerts</div>
+                    </div>
+                    """, unsafe_allow_html=True)
             except:
-                st.caption("Waiting for activity...")
+                st.markdown("""
+                <div class="card" style="text-align: center; padding: 1.5rem;">
+                    <div style="color: var(--text-secondary);">Alerts will appear here</div>
+                </div>
+                """, unsafe_allow_html=True)
             
-            st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown("<br>", unsafe_allow_html=True)
             
-            # Quick actions
-            st.markdown("""
-            <div class="panel" style="margin-top: 1rem;">
-                <div class="panel-title" style="margin-bottom: 0.75rem;">Quick Actions</div>
-            """, unsafe_allow_html=True)
+            # Intervention stats
+            st.markdown('<div class="section-title">Intervention Progress</div>', unsafe_allow_html=True)
             
-            if st.button("📝 Log Observation", key="quick_obs", use_container_width=True):
-                st.session_state.page = "observation"
-                st.rerun()
-            if st.button("📤 Upload Data", key="quick_upload", use_container_width=True):
-                st.session_state.page = "upload"
-                st.rerun()
-            
-            st.markdown("</div>", unsafe_allow_html=True)
-
+            try:
+                stats = get_intervention_stats()
+                if stats and stats['TOTAL_PLANS'] > 0:
+                    completed_pct = int((stats['COMPLETED'] / stats['TOTAL_PLANS']) * 100) if stats['TOTAL_PLANS'] > 0 else 0
+                    st.markdown(f"""
+                    <div class="card">
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <div class="progress-ring" style="--progress: {completed_pct}%;">
+                                <div class="progress-ring-inner">{completed_pct}%</div>
+                            </div>
+                            <div>
+                                <div style="font-weight: 600; font-size: 1.1rem;">{stats['COMPLETED']}/{stats['TOTAL_PLANS']}</div>
+                                <div style="color: var(--text-secondary); font-size: 0.85rem;">Plans Completed</div>
+                            </div>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    st.markdown("""
+                    <div class="card" style="text-align: center; padding: 1.5rem;">
+                        <div style="color: var(--text-secondary);">Create your first intervention plan</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+            except:
+                pass
+        
     # ============================================
     # PAGE: STUDENTS (Analytics + Early Warnings + Sentiment)
     # ============================================
@@ -1038,33 +1103,67 @@ with main_col:
                 
                 col1, col2, col3, col4 = st.columns(4)
                 with col1:
-                    st.markdown(f'<div class="metric-box"><div class="metric-label">Total Students</div><div class="metric-value">{metrics["TOTAL_STUDENTS"]}</div></div>', unsafe_allow_html=True)
+                    st.markdown(f"""
+                    <div class="stat-card purple">
+                        <div class="stat-card-icon">👥</div>
+                        <div class="stat-card-content">
+                            <div class="stat-card-value">{metrics['TOTAL_STUDENTS']}</div>
+                            <div class="stat-card-label">Students</div>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
                 with col2:
-                    st.markdown(f'<div class="metric-box"><div class="metric-label">Critical Risk</div><div class="metric-value red">{metrics["CRITICAL"]}</div></div>', unsafe_allow_html=True)
+                    st.markdown(f"""
+                    <div class="stat-card orange">
+                        <div class="stat-card-icon">🔴</div>
+                        <div class="stat-card-content">
+                            <div class="stat-card-value">{metrics['CRITICAL']}</div>
+                            <div class="stat-card-label">Critical</div>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
                 with col3:
-                    st.markdown(f'<div class="metric-box"><div class="metric-label">High Risk</div><div class="metric-value yellow">{metrics["HIGH_RISK"]}</div></div>', unsafe_allow_html=True)
+                    st.markdown(f"""
+                    <div class="stat-card pink">
+                        <div class="stat-card-icon">🟡</div>
+                        <div class="stat-card-content">
+                            <div class="stat-card-value">{metrics['HIGH_RISK']}</div>
+                            <div class="stat-card-label">High Risk</div>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
                 with col4:
-                    st.markdown(f'<div class="metric-box"><div class="metric-label">Avg GPA</div><div class="metric-value">{metrics["AVG_GPA"]}</div></div>', unsafe_allow_html=True)
+                    st.markdown(f"""
+                    <div class="stat-card green">
+                        <div class="stat-card-icon">📚</div>
+                        <div class="stat-card-content">
+                            <div class="stat-card-value">{metrics['AVG_GPA']}</div>
+                            <div class="stat-card-label">Avg GPA</div>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
             except Exception as e:
                 st.error(f"Error loading metrics: {e}")
             
-            st.markdown("<hr>", unsafe_allow_html=True)
+            st.markdown("<br>", unsafe_allow_html=True)
             
             # At-risk student list
-            st.markdown('<div class="panel-title">At-Risk Students</div>', unsafe_allow_html=True)
+            st.markdown('<div class="section-title">At-Risk Students</div>', unsafe_allow_html=True)
             try:
                 at_risk_df = get_at_risk_students()
                 if not at_risk_df.empty:
                     for _, student in at_risk_df.iterrows():
-                        risk_class = "critical" if student['RISK_SCORE'] >= 70 else "high" if student['RISK_SCORE'] >= 50 else "moderate"
+                        risk_class = "critical" if student['RISK_SCORE'] >= 70 else "warning" if student['RISK_SCORE'] >= 50 else "good"
+                        risk_icon = "🔴" if student['RISK_SCORE'] >= 70 else "🟡" if student['RISK_SCORE'] >= 50 else "🟢"
+                        
                         st.markdown(f"""
-                        <div class="student-row">
-                            <div class="risk-dot {risk_class}"></div>
-                            <span class="student-name">{student['STUDENT_NAME']}</span>
-                            <span class="student-info">Grade {int(student['GRADE_LEVEL'])}</span>
-                            <span class="student-info">Attendance: {student['ATTENDANCE_RATE']}%</span>
-                            <span class="student-info">GPA: {student['CURRENT_GPA']:.1f}</span>
-                            <span class="student-info">Risk: {student['RISK_SCORE']}</span>
+                        <div class="student-card">
+                            <div class="student-avatar {risk_class}">{risk_icon}</div>
+                            <div class="student-info">
+                                <div class="student-name">{student['STUDENT_NAME']}</div>
+                                <div class="student-meta">Grade {int(student['GRADE_LEVEL'])} · Attendance: {student['ATTENDANCE_RATE']}% · GPA: {student['CURRENT_GPA']:.1f}</div>
+                            </div>
+                            <div class="student-score {risk_class}">{int(student['RISK_SCORE'])}</div>
                         </div>
                         """, unsafe_allow_html=True)
                 else:
@@ -1090,17 +1189,13 @@ with main_col:
                         if student.get('NEGATIVE_SENTIMENT'): indicators.append("😟 Negative sentiment")
                         
                         st.markdown(f"""
-                        <div class="panel" style="margin-bottom: 0.75rem;">
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <div>
-                                    <span style="color: #e0e0e0; font-weight: 500;">{student['STUDENT_NAME']}</span>
-                                    <span style="color: #606060; margin-left: 8px;">Grade {int(student['GRADE_LEVEL'])}</span>
-                                </div>
-                                <span class="badge badge-yellow">Warning Score: {student['EARLY_WARNING_SCORE']:.0f}</span>
+                        <div class="student-card">
+                            <div class="student-avatar warning">⚠️</div>
+                            <div class="student-info">
+                                <div class="student-name">{student['STUDENT_NAME']}</div>
+                                <div class="student-meta">Grade {int(student['GRADE_LEVEL'])} · {' · '.join(indicators) if indicators else 'Multiple indicators'}</div>
                             </div>
-                            <div style="margin-top: 0.5rem; color: #808080; font-size: 0.85rem;">
-                                {' | '.join(indicators) if indicators else 'Multiple minor indicators'}
-                            </div>
+                            <div class="student-score warning">{student['EARLY_WARNING_SCORE']:.0f}</div>
                         </div>
                         """, unsafe_allow_html=True)
                 else:
@@ -1122,23 +1217,31 @@ with main_col:
                     # Show declining sentiment first
                     declining = sentiment_df[sentiment_df['TREND'] == 'Declining']
                     if not declining.empty:
-                        st.markdown('<div class="panel-title" style="color: #ef4444;">⚠️ Declining Sentiment</div>', unsafe_allow_html=True)
+                        st.markdown('<div class="section-title" style="color: var(--danger);">⚠️ Declining Sentiment</div>', unsafe_allow_html=True)
                         for _, student in declining.iterrows():
                             st.markdown(f"""
-                            <div class="student-row">
-                                <span class="student-name">{student['STUDENT_NAME']}</span>
-                                <span class="student-info">Change: {student['SENTIMENT_CHANGE']:.2f}</span>
+                            <div class="student-card">
+                                <div class="student-avatar critical">📉</div>
+                                <div class="student-info">
+                                    <div class="student-name">{student['STUDENT_NAME']}</div>
+                                    <div class="student-meta">Sentiment declining</div>
+                                </div>
+                                <div class="student-score critical">{student['SENTIMENT_CHANGE']:.2f}</div>
                             </div>
                             """, unsafe_allow_html=True)
                     
                     improving = sentiment_df[sentiment_df['TREND'] == 'Improving']
                     if not improving.empty:
-                        st.markdown('<div class="panel-title" style="color: #22c55e; margin-top: 1rem;">✨ Improving Sentiment</div>', unsafe_allow_html=True)
+                        st.markdown('<div class="section-title" style="color: var(--success); margin-top: 1rem;">✨ Improving Sentiment</div>', unsafe_allow_html=True)
                         for _, student in improving.iterrows():
                             st.markdown(f"""
-                            <div class="student-row">
-                                <span class="student-name">{student['STUDENT_NAME']}</span>
-                                <span class="student-info">Change: +{student['SENTIMENT_CHANGE']:.2f}</span>
+                            <div class="student-card">
+                                <div class="student-avatar good">📈</div>
+                                <div class="student-info">
+                                    <div class="student-name">{student['STUDENT_NAME']}</div>
+                                    <div class="student-meta">Sentiment improving</div>
+                                </div>
+                                <div class="student-score good">+{student['SENTIMENT_CHANGE']:.2f}</div>
                             </div>
                             """, unsafe_allow_html=True)
                 else:

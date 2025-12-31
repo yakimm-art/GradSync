@@ -2,9 +2,9 @@
 
 **Closing the gap between data and graduation.**
 
-> *AI for Good Hackathon Entry — Assisting teachers with attendance and performance insights*
+> *AI-powered student success platform built entirely on Snowflake*
 
-A Snowflake Native App that proactively identifies at-risk students using AI-driven interventions and provides actionable Success Plans for educators.
+A Snowflake Native App that proactively identifies at-risk students using AI-driven analysis and provides actionable intervention plans for educators.
 
 ---
 
@@ -17,29 +17,88 @@ Most schools have **"Dead Data."** Grades and attendance sit in spreadsheets, le
 - Early warning signs are often visible in data months before dropout
 - Teachers lack tools to spot subtle patterns across multiple data sources
 
+**There is not only one path towards graduation.** Every student faces unique challenges — some struggle with attendance, others with academics, and many deal with social-emotional issues that never show up in a gradebook. The problem isn't just identifying at-risk students; it's syncing the goals of teachers, counselors, parents, and administrators to create a unified support system around each student.
+
+When data lives in silos, so do the people trying to help.
+
 ## 💡 The Solution
 
-GradSync brings modern data infrastructure to an old problem. By consolidating school data into Snowflake and applying AI-driven analysis, it:
-
-1. **Detects risk early** — Combines attendance, grades, AND teacher note sentiment to catch warning signs
-2. **Explains why** — Not just a score, but human-readable reasons ("Attendance dropped 15% + negative sentiment in recent notes")
-3. **Provides action** — AI-generated Success Plans with specific interventions
-4. **Bridges language gaps** — Translates parent outreach into 8+ languages
-
-**A teacher can identify an at-risk student and have a translated parent email ready in under 3 clicks.**
+GradSync brings modern data infrastructure to an old problem. By consolidating school data into Snowflake and applying AI-driven analysis, it empowers educators with real-time insights and actionable interventions.
 
 ---
 
-## 🏆 Hackathon Alignment
+## ✨ Features
 
-| Requirement | GradSync |
-|-------------|----------|
-| **AI for Good use-case** | ✅ Education — helping at-risk students graduate |
-| **Runs entirely inside Snowflake** | ✅ 100% — no external APIs, all data stays secure |
-| **Clearly defined dataset** | ✅ Sample data included (`sql/04_sample_data.sql`) |
-| **Snowflake Intelligence adds value** | ✅ Cortex SENTIMENT, COMPLETE, TRANSLATE |
-| **Simple for non-technical users** | ✅ Teachers get insights in 2-3 clicks |
-| **Privacy-safe** | ✅ FERPA compliant — student data never leaves Snowflake |
+### 📊 Dashboard
+- **Modern UI** with light/dark mode toggle
+- **Real-time metrics** — Total students, at-risk count, attendance rates, GPA averages
+- **Colorful stat cards** with gradient backgrounds
+- **Quick actions** for common tasks
+- **Recent alerts** sidebar
+- **Intervention progress** tracking
+
+### 👥 Students Module
+Three integrated views in one place:
+
+| Tab | Description |
+|-----|-------------|
+| **📊 Analytics** | At-risk student list with risk scores, attendance, and GPA |
+| **⚡ Early Warnings** | Students showing warning signs before becoming at-risk |
+| **📈 Sentiment Trends** | Track how teacher observations change over time |
+
+### 📝 Notes Module
+Comprehensive observation and alert system:
+
+| Tab | Description |
+|-----|-------------|
+| **📝 Add Observation** | Log teacher notes with AI sentiment analysis |
+| **🚨 Counselor Alerts** | High-risk notes flagged for counselor review |
+| **🧠 AI Insights** | Cross-teacher pattern detection using Cortex AI |
+
+### 🎯 Interventions Module
+End-to-end intervention management:
+
+| Tab | Description |
+|-----|-------------|
+| **🎯 Create Plan** | AI-generated success plans with risk-specific recommendations |
+| **📋 Track Progress** | Log completed interventions and outcomes |
+
+**Key Features:**
+- 4-factor risk breakdown (Attendance, Academic, Sentiment, AI Signals)
+- "Why This Score?" explainability
+- Counselor referral recommendations
+- Parent message translation (8+ languages)
+
+### 📤 Import Data
+Multiple data entry points:
+- **File Upload** — CSV/Excel from Canvas, PowerSchool, or Google Sheets
+- **Data Type Selection** — Students, Attendance, or Grades
+- **Preview & Validate** — See data before importing
+- **Progress Tracking** — Real-time import status
+
+---
+
+## 🤖 AI-Powered Features
+
+| Feature | Snowflake Cortex Function | Description |
+|---------|---------------------------|-------------|
+| **Sentiment Analysis** | `CORTEX.SENTIMENT` | Analyzes teacher notes for emotional tone |
+| **Note Classification** | `CORTEX.CLASSIFY_TEXT` | Categorizes notes (Academic, Behavioral, Safety, etc.) |
+| **Pattern Detection** | `CORTEX.COMPLETE` | Identifies hidden patterns across multiple observations |
+| **Success Plans** | `CORTEX.COMPLETE` | Generates personalized intervention strategies |
+| **Translation** | `CORTEX.TRANSLATE` | Parent outreach in 8+ languages |
+
+### Risk Scoring System
+
+```
+Risk Score = Attendance Risk + Academic Risk + Sentiment Risk + AI Signal Risk
+             (0-25 pts)       (0-25 pts)      (0-25 pts)       (0-25 pts)
+```
+
+**Risk Levels:**
+- 🟢 **Low** (0-49): Student on track
+- 🟡 **Moderate** (50-69): Needs monitoring
+- 🔴 **Critical** (70-100): Immediate intervention required
 
 ---
 
@@ -48,44 +107,14 @@ GradSync brings modern data infrastructure to an old problem. By consolidating s
 | Feature | How We Use It |
 |---------|---------------|
 | **Streamlit in Snowflake** | Teacher-friendly UI, zero installation |
-| **Dynamic Tables** | Auto-refreshing Student 360 View |
+| **Dynamic Tables** | Auto-refreshing Student 360 View & Risk Breakdown |
 | **Hybrid Tables (Unistore)** | Sub-100ms teacher note saves |
 | **Snowpipe** | Auto-ingest from district systems |
 | **Streams + Tasks** | Real-time event processing |
 | **Cortex SENTIMENT** | Analyze teacher notes for risk signals |
-| **Cortex COMPLETE** | Generate personalized Success Plans |
+| **Cortex CLASSIFY_TEXT** | Categorize observations automatically |
+| **Cortex COMPLETE** | Generate Success Plans & detect patterns |
 | **Cortex TRANSLATE** | Parent outreach in native language |
-
----
-
-## 🖥️ Demo Walkthrough
-
-### 1. Overview — See At-Risk Students Instantly
-![Overview](docs/screenshots/overview.png)
-- Key metrics at a glance (total students, critical risk count, avg attendance)
-- Priority list of students needing attention
-- Recent teacher activity feed
-
-### 2. Analytics — Understand the Patterns
-- Risk distribution by severity level
-- Attendance trends by grade
-- GPA distribution across the school
-
-### 3. Log Observations — AI Analyzes Sentiment
-- Teacher writes a note about a student
-- Cortex SENTIMENT scores it instantly (-1 to +1)
-- Negative sentiment contributes to risk score
-
-### 4. Success Plans — AI Generates Interventions
-- Select an at-risk student
-- Click "Generate Success Plan"
-- Cortex COMPLETE creates specific, actionable recommendations
-- Translate parent message to Spanish, Chinese, Vietnamese, etc.
-
-### 5. Import Data — Multiple Entry Points
-- **Bulk Upload**: Drag-and-drop CSV/Excel from Canvas or PowerSchool
-- **Direct Entry**: Real-time teacher notes via Hybrid Tables
-- **Auto-Sync**: Snowpipe ingests from district systems automatically
 
 ---
 
@@ -114,30 +143,6 @@ GradSync brings modern data infrastructure to an old problem. By consolidating s
 └────────────────────────────────────────────────────────────┘
 ```
 
-### Data Flow
-
-```
-┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│  Bulk Upload    │────▶│  Staging Table   │────▶│  Raw Tables     │
-│  (CSV/Excel)    │     │  + Procedure     │     │                 │
-└─────────────────┘     └──────────────────┘     └────────┬────────┘
-                                                          │
-┌─────────────────┐     ┌──────────────────┐              ▼
-│  Teacher Note   │────▶│  Hybrid Table    │────▶┌─────────────────┐
-│  (Direct Entry) │     │  (<100ms write)  │     │ Dynamic Tables  │
-└─────────────────┘     └──────────────────┘     │ (Auto-Refresh)  │
-                                                  └────────┬────────┘
-┌─────────────────┐     ┌──────────────────┐              │
-│  District DB    │────▶│  Snowpipe        │──────────────┘
-│  (Auto-Sync)    │     │  + Stream/Task   │              ▼
-└─────────────────┘     └──────────────────┘     ┌─────────────────┐
-                                                  │  Cortex AI      │
-                                                  │  Risk Detection │
-                                                  │  Success Plans  │
-                                                  │  Translation    │
-                                                  └─────────────────┘
-```
-
 ---
 
 ## 🚀 Quick Start
@@ -146,7 +151,7 @@ GradSync brings modern data infrastructure to an old problem. By consolidating s
 - Snowflake account with Cortex AI enabled
 - Streamlit in Snowflake access
 
-### Installation (5 minutes)
+### Installation
 
 1. **Clone the repo**
    ```bash
@@ -154,58 +159,29 @@ GradSync brings modern data infrastructure to an old problem. By consolidating s
    cd gradsync
    ```
 
-2. **Run SQL scripts in Snowflake** (in order)
+2. **Run SQL scripts in order**
    ```sql
-   -- 1. Create database and tables
-   -- Run: sql/01_setup_database.sql
+   -- 1. Setup database and tables
+   sql/01_setup_database.sql
    
-   -- 2. Create Dynamic Tables for analytics
-   -- Run: sql/02_dynamic_tables.sql
+   -- 2. Create Dynamic Tables
+   sql/02_dynamic_tables.sql
    
-   -- 3. Load sample data
-   -- Run: sql/04_sample_data.sql
+   -- 3. Setup Snowpipe (optional)
+   sql/03_snowpipe_auto_sync.sql
+   
+   -- 4. Load sample data
+   sql/04_sample_data.sql
+   
+   -- 5-14. Additional features (AI classification, patterns, etc.)
    ```
 
 3. **Deploy Streamlit app**
-   - Upload `streamlit/gradsync_app.py` to Snowflake Streamlit
-   - Set database context to `GRADSYNC_DB`
+   ```bash
+   snow streamlit deploy
+   ```
 
 4. **Open the app and explore!**
-
----
-
-## 📊 Sample Data
-
-The demo includes realistic sample data:
-- **10 students** across grades 9-12
-- **100 attendance records** with various statuses
-- **12 grade entries** across multiple courses
-- **Teacher notes** with positive/negative sentiment examples
-
-All data is synthetic — no real student information.
-
----
-
-## 🔑 Key Differentiators
-
-### Beyond Dashboards
-GradSync isn't just a read-only dashboard. It **writes back** to Snowflake:
-- Teacher notes saved to Hybrid Tables in real-time
-- Bulk uploads processed into normalized tables
-- Auto-sync ingests external data continuously
-
-### Explainable AI
-Not a black-box risk score. Teachers see:
-- Which factors contributed to the score
-- Specific attendance patterns
-- Sentiment trends in notes
-- AI-generated explanations
-
-### Actionable Output
-Every insight leads to action:
-- Risk detected → Success Plan generated
-- Language barrier → Auto-translate message
-- Pattern spotted → Specific intervention recommended
 
 ---
 
@@ -214,47 +190,79 @@ Every insight leads to action:
 ```
 gradsync/
 ├── streamlit/
-│   └── gradsync_app.py          # Main application (1200+ lines)
+│   └── gradsync_app.py              # Main Streamlit application
 ├── sql/
-│   ├── 01_setup_database.sql    # Schema + tables
-│   ├── 02_dynamic_tables.sql    # Analytics views
-│   ├── 03_snowpipe_auto_sync.sql # Auto-ingestion config
-│   ├── 04_sample_data.sql       # Demo data
-│   └── ...
+│   ├── 00_verify_snowflake_setup.sql
+│   ├── 01_setup_database.sql        # Core schema
+│   ├── 02_dynamic_tables.sql        # Analytics views
+│   ├── 03_snowpipe_auto_sync.sql    # Auto-ingestion
+│   ├── 04_sample_data.sql           # Demo data
+│   ├── 05_bulk_upload_procedure.sql # CSV processing
+│   ├── 06_add_parent_language.sql   # Translation support
+│   ├── 07_test_direct_entry.sql
+│   ├── 08_test_auto_sync.sql
+│   ├── 09_aws_s3_setup.sql          # S3 integration
+│   ├── 10_ai_note_classification.sql # Cortex classification
+│   ├── 11_ai_pattern_detection.sql  # Cross-teacher patterns
+│   ├── 12_early_warning_system.sql  # Predictive alerts
+│   ├── 13_sentiment_trends.sql      # Sentiment tracking
+│   └── 14_intervention_tracking.sql # Outcome logging
 ├── tests/
-│   └── test_snowpipe_properties.py  # Property-based tests
+│   ├── test_snowpipe_properties.py  # Property-based tests
+│   └── requirements.txt
 ├── test_data/
-│   └── snowpipe_samples/        # JSON test files
+│   ├── snowpipe_samples/            # JSON test files
+│   ├── students_test.csv
+│   ├── grades_test.csv
+│   └── attendance_test.csv
+├── aws/
+│   ├── snowflake-s3-policy.json
+│   └── snowflake-trust-policy-initial.json
+├── snowflake.yml                    # Deployment config
 └── README.md
 ```
 
 ---
 
+## 📊 Sample Data
+
+The demo includes realistic sample data:
+- **10 students** across grades 9-12
+- **Attendance records** with various statuses
+- **Grade entries** across multiple courses
+- **Teacher notes** with sentiment examples
+
+All data is synthetic — no real student information.
+
+---
+
 ## 🧪 Testing
 
-Property-based tests validate correctness:
-
 ```bash
-pip install pytest hypothesis
-pytest tests/test_snowpipe_properties.py -v
+cd tests
+pip install -r requirements.txt
+pytest test_snowpipe_properties.py -v
 ```
 
 Tests cover:
 - ✅ Raw payload preservation
-- ✅ Event type mapping (check_in → Present, no_show → Absent)
-- ✅ Processing idempotency (no duplicates)
+- ✅ Event type mapping
+- ✅ Processing idempotency
 - ✅ Malformed JSON rejection
 
 ---
 
-## 🌍 Real-World Impact
+## 🌍 Supported Languages
 
-| Metric | Impact |
-|--------|--------|
-| **Time to identify at-risk student** | Days → Seconds |
-| **Languages supported for parent outreach** | 1 → 8+ |
-| **Data sources unified** | Fragmented → Single view |
-| **Teacher clicks to action** | Many → 3 |
+Parent communication translation:
+- 🇪🇸 Spanish
+- 🇨🇳 Chinese
+- 🇻🇳 Vietnamese
+- 🇰🇷 Korean
+- 🇸🇦 Arabic
+- 🇫🇷 French
+- 🇵🇹 Portuguese
+- 🇩🇪 German
 
 ---
 
@@ -269,7 +277,7 @@ Tests cover:
 
 ## 📜 License
 
-MIT License — see [LICENSE](LICENSE) for details.
+MIT License
 
 ---
 
@@ -278,5 +286,7 @@ MIT License — see [LICENSE](LICENSE) for details.
 **Made with ❤️ for educators and students everywhere**
 
 *Because every student deserves someone watching out for them.*
+
+🎓 **GradSync** — Closing the gap between data and graduation.
 
 </div>
