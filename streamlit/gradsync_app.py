@@ -25,6 +25,10 @@ if 'page' not in st.session_state:
     st.session_state.page = "dashboard"
 if 'theme' not in st.session_state:
     st.session_state.theme = "light"
+if 'show_guide' not in st.session_state:
+    st.session_state.show_guide = False
+if 'guide_step' not in st.session_state:
+    st.session_state.guide_step = 0
 
 # Theme-aware CSS
 def get_theme_css():
@@ -119,6 +123,27 @@ def get_theme_css():
             /* Light mode expander */
             .streamlit-expanderHeader {
                 background: #ffffff !important;
+                color: #2d3436 !important;
+            }
+            [data-testid="stExpander"] {
+                background: #ffffff !important;
+                border: 1px solid #e9ecef !important;
+                border-radius: 8px !important;
+            }
+            [data-testid="stExpander"] > div {
+                background: #ffffff !important;
+            }
+            [data-testid="stExpander"] details {
+                background: #ffffff !important;
+            }
+            [data-testid="stExpander"] summary {
+                background: #ffffff !important;
+                color: #2d3436 !important;
+            }
+            [data-testid="stExpander"] [data-testid="stMarkdownContainer"] {
+                color: #2d3436 !important;
+            }
+            [data-testid="stExpander"] p, [data-testid="stExpander"] li {
                 color: #2d3436 !important;
             }
         </style>
@@ -888,6 +913,10 @@ with nav_col:
     if st.button("⚙️  Settings", key="nav_settings", use_container_width=True):
         st.session_state.page = "settings"
         st.rerun()
+    
+    if st.button("❓  Help Guide", key="nav_help", use_container_width=True):
+        st.session_state.show_guide = True
+        st.rerun()
 
 
 # ============================================
@@ -898,17 +927,150 @@ with main_col:
     page = st.session_state.page
     
     # ============================================
+    # HELP GUIDE - SIMPLE MODAL
+    # ============================================
+    
+    def show_help_guide():
+        """Show help guide as a simple step-by-step modal"""
+        if not st.session_state.show_guide:
+            return
+        
+        guide_content = [
+            {
+                "icon": "🎓",
+                "title": "Welcome to GradSync!",
+                "desc": "Your AI-powered student success platform",
+                "items": [
+                    "Identify at-risk students early",
+                    "AI analyzes attendance, grades & observations",
+                    "Get actionable intervention plans"
+                ]
+            },
+            {
+                "icon": "📊",
+                "title": "Your Dashboard",
+                "desc": "Everything you need at a glance",
+                "items": [
+                    "Colored cards show key metrics",
+                    "Student list sorted by risk level",
+                    "Quick actions for common tasks"
+                ]
+            },
+            {
+                "icon": "📍",
+                "title": "Navigation",
+                "desc": "Find what you need quickly",
+                "items": [
+                    "� Studeonts — Analytics & warnings",
+                    "📝 Notes — Log observations",
+                    "🎯 Interventions — Success plans",
+                    "📤 Import — Upload data"
+                ]
+            },
+            {
+                "icon": "🚀",
+                "title": "You're Ready!",
+                "desc": "Start helping your students succeed",
+                "items": [
+                    "Check dashboard daily",
+                    "Log observations regularly",
+                    "Create plans for at-risk students"
+                ]
+            }
+        ]
+        
+        step = st.session_state.guide_step
+        current = guide_content[step]
+        total = len(guide_content)
+        
+        # Modern card design with shadow
+        st.markdown(f"""
+        <div style="background: linear-gradient(135deg, #6c5ce7 0%, #a29bfe 100%); border-radius: 20px; padding: 2rem; margin-bottom: 1.5rem; color: white; box-shadow: 0 10px 40px rgba(108, 92, 231, 0.3);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <span style="background: rgba(255,255,255,0.2); padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.85rem;">📚 Getting Started</span>
+                <span style="background: rgba(255,255,255,0.2); padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.85rem;">Step {step + 1} of {total}</span>
+            </div>
+            <div style="text-align: center; margin-bottom: 1.5rem;">
+                <div style="font-size: 4rem; margin-bottom: 0.75rem;">{current['icon']}</div>
+                <div style="font-size: 1.75rem; font-weight: 700; margin-bottom: 0.5rem;">{current['title']}</div>
+                <div style="font-size: 1rem; opacity: 0.9;">{current['desc']}</div>
+            </div>
+            <div style="background: rgba(255,255,255,0.15); border-radius: 16px; padding: 1.25rem;">
+        """, unsafe_allow_html=True)
+        
+        for item in current['items']:
+            st.markdown(f"""
+            <div style="display: flex; align-items: center; gap: 10px; padding: 0.5rem 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                <span style="color: #a29bfe; font-size: 1.1rem;">✓</span>
+                <span style="color: white; font-size: 0.95rem;">{item}</span>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        # Progress dots
+        dots_html = '<div style="display: flex; justify-content: center; gap: 10px; margin-top: 1.5rem;">'
+        for i in range(total):
+            bg = "white" if i == step else "rgba(255,255,255,0.3)"
+            size = "12px" if i == step else "8px"
+            dots_html += f'<div style="width: {size}; height: {size}; border-radius: 50%; background: {bg}; transition: all 0.3s;"></div>'
+        dots_html += '</div>'
+        
+        st.markdown(f"""
+            </div>
+            {dots_html}
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Navigation buttons
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            if step > 0:
+                if st.button("← Back", key="help_back", use_container_width=True):
+                    st.session_state.guide_step -= 1
+                    st.rerun()
+        with c2:
+            if st.button("✕ Close Guide", key="help_skip", use_container_width=True):
+                st.session_state.show_guide = False
+                st.session_state.guide_step = 0
+                st.rerun()
+        with c3:
+            if step < total - 1:
+                if st.button("Next →", key="help_next", use_container_width=True):
+                    st.session_state.guide_step += 1
+                    st.rerun()
+            else:
+                if st.button("✓ Start Using!", key="help_done", use_container_width=True):
+                    st.session_state.show_guide = False
+                    st.session_state.guide_step = 0
+                    st.rerun()
+        
+        return True
+    
+    # ============================================
     # PAGE: DASHBOARD (Modern Design)
     # ============================================
     
     if page == "dashboard":
-        # Welcome section
-        st.markdown("""
-        <div class="welcome-section">
-            <div class="welcome-title">Hello, Teacher! 👋</div>
-            <div class="welcome-subtitle">Here's what's happening with your students today</div>
-        </div>
-        """, unsafe_allow_html=True)
+        # Show guide if active (at top of page) - only when explicitly triggered
+        if st.session_state.get('show_guide', False):
+            show_help_guide()
+            st.markdown("<hr>", unsafe_allow_html=True)
+        
+        # Welcome section with help button
+        col_welcome, col_help = st.columns([4, 1])
+        
+        with col_welcome:
+            st.markdown("""
+            <div class="welcome-section">
+                <div class="welcome-title">Hello, Teacher! 👋</div>
+                <div class="welcome-subtitle">Here's what's happening with your students today</div>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with col_help:
+            if st.button("❓ Take a Tour", use_container_width=True):
+                st.session_state.show_guide = True
+                st.session_state.guide_step = 0
+                st.rerun()
         
         # Main layout: Left content + Right sidebar
         main_left, main_right = st.columns([2, 1])
@@ -1567,37 +1729,31 @@ with main_col:
     # ============================================
     
     elif page == "upload":
-        st.markdown('<div class="page-header">📤 Import Data</div>', unsafe_allow_html=True)
-        st.markdown('<div class="page-subtitle">Upload attendance, grades, and student data</div>', unsafe_allow_html=True)
+        st.markdown('<div class="page-header">📤 Data Management</div>', unsafe_allow_html=True)
+        st.markdown('<div class="page-subtitle">Import, export, and manage your student data</div>', unsafe_allow_html=True)
         
-        # Friendly intro
-        st.markdown("""
-        <div class="panel" style="background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%); border-color: rgba(34, 197, 94, 0.2);">
-            <div style="display: flex; align-items: center; gap: 12px;">
-                <span style="font-size: 1.5rem;">💡</span>
-                <div>
-                    <div style="color: #22c55e; font-weight: 500;">Easy Import</div>
-                    <div style="color: #808080; font-size: 0.85rem;">Upload CSV files from Excel, Google Sheets, or your school system exports.</div>
-                </div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+        # Tabs for Import, Export, and Templates
+        tab_import, tab_export, tab_templates = st.tabs(["📥 Import Data", "📤 Export Data", "📋 CSV Templates"])
         
-        st.markdown("<br>", unsafe_allow_html=True)
-        
-        col1, col2 = st.columns([2, 1])
-        
-        with col1:
-            data_type = st.selectbox(
-                "What type of data are you uploading?",
-                ["students", "attendance", "grades"],
-                format_func=lambda x: {
-                    "students": "👥 Student Roster", 
-                    "attendance": "📅 Attendance Records", 
-                    "grades": "📝 Grade Data"
-                }[x]
-            )
+        with tab_import:
+            col1, col2 = st.columns([3, 2])
             
+            with col1:
+                # Upload area card
+                st.markdown("""
+                <div class="card" style="text-align: center; padding: 2rem; border: 2px dashed var(--border);">
+                    <div style="font-size: 3rem; margin-bottom: 0.75rem;">📁</div>
+                    <div style="font-weight: 600; color: var(--text-primary);">Upload Your Data</div>
+                    <div style="color: var(--text-secondary); font-size: 0.85rem;">CSV or Excel files</div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                data_type = st.selectbox(
+                    "Data Type",
+                    ["students", "attendance", "grades"],
+                    format_func=lambda x: {"students": "👥 Student Roster", "attendance": "📅 Attendance", "grades": "📝 Grades"}[x]
+                )
+                
             uploaded_file = st.file_uploader("Choose your file", type=['csv', 'xlsx'])
             
             if uploaded_file:
@@ -1632,19 +1788,246 @@ with main_col:
                 except Exception as e:
                     st.error("Could not read file. Check format.")
         
-        with col2:
+            with col2:
+                # Required columns card
+                st.markdown("""
+                <div class="card">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 1rem;">
+                        <span style="font-size: 1.2rem;">📋</span>
+                        <span style="font-weight: 600; color: var(--text-primary);">Required Columns</span>
+                    </div>
+                """, unsafe_allow_html=True)
+                
+                if data_type == "students":
+                    cols_info = [("student_id", "Unique ID"), ("first_name", "First name"), ("last_name", "Last name"), ("grade_level", "9-12")]
+                elif data_type == "attendance":
+                    cols_info = [("student_id", "Student ID"), ("date", "YYYY-MM-DD"), ("status", "Present/Absent/Tardy")]
+                else:
+                    cols_info = [("student_id", "Student ID"), ("subject", "e.g., Math"), ("assignment", "Name"), ("score", "Points")]
+                
+                for col_name, col_desc in cols_info:
+                    st.markdown(f"""
+                    <div style="display: flex; justify-content: space-between; padding: 0.4rem 0; border-bottom: 1px solid var(--border);">
+                        <code style="background: var(--accent-light); color: var(--accent); padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.75rem;">{col_name}</code>
+                        <span style="color: var(--text-secondary); font-size: 0.8rem;">{col_desc}</span>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                st.markdown("""
+                </div>
+                <div class="card" style="margin-top: 1rem;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 0.5rem;">
+                        <span style="font-size: 1.2rem;">💡</span>
+                        <span style="font-weight: 600; color: var(--text-primary);">Tips</span>
+                    </div>
+                    <div style="color: var(--text-secondary); font-size: 0.8rem; line-height: 1.5;">
+                        • Get templates from "CSV Templates" tab<br>
+                        • Save Excel as CSV before upload<br>
+                        • Keep student_id consistent
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+        
+        with tab_export:
+            # Export header
             st.markdown("""
-            <div class="panel">
-                <div class="panel-title" style="margin-bottom: 0.75rem;">📋 Required Columns</div>
+            <div class="card" style="background: linear-gradient(135deg, rgba(108, 92, 231, 0.1) 0%, rgba(108, 92, 231, 0.05) 100%); border-color: rgba(108, 92, 231, 0.2);">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <span style="font-size: 1.5rem;">📤</span>
+                    <div>
+                        <div style="color: var(--accent); font-weight: 600;">Export Your Data</div>
+                        <div style="color: var(--text-secondary); font-size: 0.85rem;">Download reports for sharing or backup</div>
+                    </div>
+                </div>
             </div>
             """, unsafe_allow_html=True)
             
-            if data_type == "students":
-                st.caption("student_id, first_name, last_name, grade_level")
-            elif data_type == "attendance":
-                st.caption("student_id, date, status (Present/Absent/Tardy)")
-            else:
-                st.caption("student_id, subject, assignment, score")
+            st.markdown("<br>", unsafe_allow_html=True)
+            
+            export_type = st.selectbox(
+                "Select data to export",
+                ["at_risk_students", "all_students", "intervention_history", "teacher_notes"],
+                format_func=lambda x: {
+                    "at_risk_students": "⚠️ At-Risk Students Report",
+                    "all_students": "👥 All Students Data",
+                    "intervention_history": "🎯 Intervention History",
+                    "teacher_notes": "📝 Teacher Observations"
+                }[x]
+            )
+            
+            try:
+                if export_type == "at_risk_students":
+                    export_df = get_at_risk_students()
+                    filename = "at_risk_students_report.csv"
+                elif export_type == "all_students":
+                    export_df = session.sql("""
+                        SELECT student_id, first_name, last_name, grade_level, 
+                               COALESCE(parent_language, 'English') as parent_language
+                        FROM RAW_DATA.STUDENTS ORDER BY last_name, first_name
+                    """).to_pandas()
+                    filename = "all_students.csv"
+                elif export_type == "intervention_history":
+                    export_df = get_intervention_history()
+                    filename = "intervention_history.csv"
+                else:
+                    export_df = get_recent_notes()
+                    filename = "teacher_observations.csv"
+                
+                if not export_df.empty:
+                    st.markdown(f"""
+                    <div class="card" style="background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%); border-color: rgba(34, 197, 94, 0.3);">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <span style="font-size: 1.5rem;">✅</span>
+                            <div>
+                                <div style="color: #22c55e; font-weight: 600;">Ready to Download</div>
+                                <div style="color: var(--text-secondary); font-size: 0.85rem;">{len(export_df)} records · {filename}</div>
+                            </div>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    with st.expander("📊 Preview Data"):
+                        st.dataframe(export_df.head(10), use_container_width=True)
+                    
+                    csv_data = export_df.to_csv(index=False)
+                    st.download_button(
+                        label="⬇️ Download CSV",
+                        data=csv_data,
+                        file_name=filename,
+                        mime="text/csv",
+                        use_container_width=True,
+                        type="primary"
+                    )
+                else:
+                    st.info("No data available for export.")
+            except Exception as e:
+                st.warning(f"Could not load data: {e}")
+        
+        with tab_templates:
+            # Header
+            st.markdown("""
+            <div class="card" style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%); border-color: rgba(59, 130, 246, 0.2);">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <span style="font-size: 1.5rem;">📋</span>
+                    <div>
+                        <div style="color: #3b82f6; font-weight: 600;">CSV Templates</div>
+                        <div style="color: var(--text-secondary); font-size: 0.85rem;">Download → Fill in Excel → Upload in Import tab</div>
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            st.markdown("<br>", unsafe_allow_html=True)
+            
+            # Template cards in 3 columns
+            t_col1, t_col2, t_col3 = st.columns(3)
+            
+            with t_col1:
+                st.markdown("""
+                <div class="card" style="text-align: center;">
+                    <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">👥</div>
+                    <div style="font-weight: 600; color: var(--text-primary);">Students</div>
+                    <div style="color: var(--text-secondary); font-size: 0.8rem; margin-bottom: 1rem;">Add new students</div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                students_template = pd.DataFrame({
+                    'student_id': ['STU001', 'STU002', 'STU003'],
+                    'first_name': ['John', 'Maria', 'James'],
+                    'last_name': ['Smith', 'Garcia', 'Johnson'],
+                    'grade_level': [9, 10, 11],
+                    'parent_language': ['English', 'Spanish', 'English']
+                })
+                
+                st.download_button(
+                    label="⬇️ Download",
+                    data=students_template.to_csv(index=False),
+                    file_name="students_template.csv",
+                    mime="text/csv",
+                    use_container_width=True
+                )
+            
+            with t_col2:
+                st.markdown("""
+                <div class="card" style="text-align: center;">
+                    <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">📅</div>
+                    <div style="font-weight: 600; color: var(--text-primary);">Attendance</div>
+                    <div style="color: var(--text-secondary); font-size: 0.8rem; margin-bottom: 1rem;">Daily records</div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                attendance_template = pd.DataFrame({
+                    'student_id': ['STU001', 'STU001', 'STU002'],
+                    'date': ['2025-01-06', '2025-01-07', '2025-01-06'],
+                    'status': ['Present', 'Absent', 'Tardy']
+                })
+                
+                st.download_button(
+                    label="⬇️ Download",
+                    data=attendance_template.to_csv(index=False),
+                    file_name="attendance_template.csv",
+                    mime="text/csv",
+                    use_container_width=True
+                )
+            
+            with t_col3:
+                st.markdown("""
+                <div class="card" style="text-align: center;">
+                    <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">📝</div>
+                    <div style="font-weight: 600; color: var(--text-primary);">Grades</div>
+                    <div style="color: var(--text-secondary); font-size: 0.8rem; margin-bottom: 1rem;">Assignment scores</div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                grades_template = pd.DataFrame({
+                    'student_id': ['STU001', 'STU001', 'STU002'],
+                    'subject': ['Math', 'English', 'Math'],
+                    'assignment': ['Quiz 1', 'Essay 1', 'Quiz 1'],
+                    'score': [85, 92, 78],
+                    'max_score': [100, 100, 100]
+                })
+                
+                st.download_button(
+                    label="⬇️ Download",
+                    data=grades_template.to_csv(index=False),
+                    file_name="grades_template.csv",
+                    mime="text/csv",
+                    use_container_width=True
+                )
+            
+            st.markdown("<br>", unsafe_allow_html=True)
+            
+            # Quick start guide
+            st.markdown("""
+            <div class="card">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 1rem;">
+                    <span style="font-size: 1.2rem;">🚀</span>
+                    <span style="font-weight: 600; color: var(--text-primary);">Quick Start</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; text-align: center;">
+                    <div style="flex: 1;">
+                        <div style="background: var(--accent); color: white; width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.85rem;">1</div>
+                        <div style="color: var(--text-secondary); font-size: 0.75rem; margin-top: 0.25rem;">Download</div>
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="background: var(--accent); color: white; width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.85rem;">2</div>
+                        <div style="color: var(--text-secondary); font-size: 0.75rem; margin-top: 0.25rem;">Open Excel</div>
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="background: var(--accent); color: white; width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.85rem;">3</div>
+                        <div style="color: var(--text-secondary); font-size: 0.75rem; margin-top: 0.25rem;">Fill Data</div>
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="background: var(--accent); color: white; width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.85rem;">4</div>
+                        <div style="color: var(--text-secondary); font-size: 0.75rem; margin-top: 0.25rem;">Save CSV</div>
+                    </div>
+                    <div style="flex: 1;">
+                        <div style="background: var(--accent); color: white; width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.85rem;">5</div>
+                        <div style="color: var(--text-secondary); font-size: 0.75rem; margin-top: 0.25rem;">Upload</div>
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
 
     # ============================================
     # LEGACY PAGES (redirect to new consolidated pages)
