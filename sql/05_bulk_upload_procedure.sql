@@ -23,14 +23,15 @@ DECLARE
 BEGIN
     CASE data_type
         WHEN 'students' THEN
-            INSERT INTO RAW_DATA.STUDENTS (student_id, first_name, last_name, grade_level, enrollment_date, parent_email)
+            INSERT INTO RAW_DATA.STUDENTS (student_id, first_name, last_name, grade_level, enrollment_date, parent_email, parent_language)
             SELECT 
                 raw_data:student_id::VARCHAR,
                 raw_data:first_name::VARCHAR,
                 raw_data:last_name::VARCHAR,
                 raw_data:grade_level::INT,
                 TRY_TO_DATE(raw_data:enrollment_date::VARCHAR),
-                raw_data:parent_email::VARCHAR
+                raw_data:parent_email::VARCHAR,
+                COALESCE(raw_data:parent_language::VARCHAR, 'English')
             FROM RAW_DATA.BULK_UPLOAD_STAGING
             WHERE upload_batch = :batch_id AND processed = FALSE;
             
@@ -52,11 +53,11 @@ BEGIN
             INSERT INTO RAW_DATA.GRADES (student_id, course_name, assignment_name, score, max_score, grade_date)
             SELECT 
                 raw_data:student_id::VARCHAR,
-                raw_data:course::VARCHAR,
-                raw_data:assignment::VARCHAR,
+                COALESCE(raw_data:course::VARCHAR, raw_data:subject::VARCHAR, raw_data:course_name::VARCHAR),
+                COALESCE(raw_data:assignment::VARCHAR, raw_data:assignment_name::VARCHAR),
                 raw_data:score::DECIMAL(5,2),
                 raw_data:max_score::DECIMAL(5,2),
-                TRY_TO_DATE(raw_data:date::VARCHAR)
+                TRY_TO_DATE(COALESCE(raw_data:date::VARCHAR, raw_data:grade_date::VARCHAR))
             FROM RAW_DATA.BULK_UPLOAD_STAGING
             WHERE upload_batch = :batch_id AND processed = FALSE;
             

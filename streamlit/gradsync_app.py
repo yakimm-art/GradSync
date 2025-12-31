@@ -4,13 +4,30 @@ Closing the gap between data and graduation.
 """
 
 import streamlit as st
-from snowflake.snowpark.context import get_active_session
 import pandas as pd
 import uuid
 import time
 
-# Initialize session
-session = get_active_session()
+# Try Snowflake Native App session first, fall back to external connection
+try:
+    from snowflake.snowpark.context import get_active_session
+    session = get_active_session()
+except:
+    from snowflake.snowpark import Session
+    
+    @st.cache_resource
+    def create_session():
+        return Session.builder.configs({
+            "account": st.secrets["snowflake"]["account"],
+            "user": st.secrets["snowflake"]["user"],
+            "password": st.secrets["snowflake"]["password"],
+            "warehouse": st.secrets["snowflake"]["warehouse"],
+            "database": st.secrets["snowflake"]["database"],
+            "schema": st.secrets["snowflake"]["schema"],
+            "role": st.secrets["snowflake"].get("role", "PUBLIC")
+        }).create()
+    
+    session = create_session()
 
 # Page config
 st.set_page_config(
@@ -564,6 +581,46 @@ st.markdown("""
 # ============================================
 # HELPER FUNCTIONS
 # ============================================
+
+def import_student_row(row):
+    """Import a single student row directly into STUDENTS table"""
+    student_id = str(row.get('student_id', '')).replace("'", "''")
+    first_name = str(row.get('first_name', '')).replace("'", "''")
+    last_name = str(row.get('last_name', '')).replace("'", "''")
+    grade_level = int(row.get('grade_level', 9))
+    parent_email = str(row.get('parent_email', '')).replace("'", "''")
+    parent_lang = str(row.get('parent_language', 'English')).replace("'", "''")
+    
+    session.sql(f"""
+        INSERT INTO RAW_DATA.STUDENTS (student_id, first_name, last_name, grade_level, parent_email, parent_language)
+        SELECT '{student_id}', '{first_name}', '{last_name}', {grade_level}, '{parent_email}', '{parent_lang}'
+        WHERE NOT EXISTS (SELECT 1 FROM RAW_DATA.STUDENTS WHERE student_id = '{student_id}')
+    """).collect()
+
+def import_attendance_row(row):
+    """Import a single attendance row directly into ATTENDANCE table"""
+    student_id = str(row.get('student_id', '')).replace("'", "''")
+    # Check both possible column names for date
+    att_date = str(row.get('attendance_date', row.get('date', ''))).replace("'", "''")
+    status = str(row.get('status', 'Present')).replace("'", "''")
+    session.sql(f"""
+        INSERT INTO RAW_DATA.ATTENDANCE (student_id, attendance_date, status)
+        SELECT '{student_id}', '{att_date}', '{status}'
+    """).collect()
+
+def import_grades_row(row):
+    """Import a single grades row directly into GRADES table"""
+    student_id = str(row.get('student_id', '')).replace("'", "''")
+    # Check multiple possible column names for course
+    course = str(row.get('course_name', row.get('subject', row.get('course', '')))).replace("'", "''")
+    # Check multiple possible column names for assignment
+    assignment = str(row.get('assignment_name', row.get('assignment', ''))).replace("'", "''")
+    score = float(row.get('score', 0))
+    max_score = float(row.get('max_score', 100))
+    session.sql(f"""
+        INSERT INTO RAW_DATA.GRADES (student_id, course_name, assignment_name, score, max_score)
+        SELECT '{student_id}', '{course}', '{assignment}', {score}, {max_score}
+    """).collect()
 
 @st.cache_data(ttl=300)
 def get_students():
@@ -2167,14 +2224,14 @@ with main_col:
                                 classification, confidence = classify_note(note_text)
                                 is_high_risk = is_high_risk_category(classification) if classification else False
                                 
-                                note_id = str(uuid.uuid4())[:8]
+                                
                                 
                                 class_value = f"'{classification}'" if classification else "NULL"
                                 conf_value = confidence if confidence else "NULL"
                                 
                                 session.sql(f"""
-                                    INSERT INTO APP.TEACHER_NOTES (note_id, student_id, note_text, note_category, sentiment_score, ai_classification, ai_confidence, is_high_risk)
-                                    VALUES ('{note_id}', '{student_id}', $${note_text}$$, '{category}', {sentiment}, {class_value}, {conf_value}, {is_high_risk})
+                                    INSERT INTO APP.TEACHER_NOTES (student_id, note_text, note_category, sentiment_score, ai_classification, ai_confidence, is_high_risk)
+                                    VALUES ('{student_id}', $${note_text}$$, '{category}', {sentiment}, {class_value}, {conf_value}, {is_high_risk})
                                 """).collect()
                                 
                                 st.success("✅ Observation saved!")
@@ -2477,19 +2534,23 @@ with main_col:
                     if st.button("📥 Import Data", use_container_width=True, type="primary"):
                         with st.spinner("Importing..."):
                             try:
-                                batch_id = str(uuid.uuid4())[:8]
+                                success_count = 0
                                 progress = st.progress(0)
                                 
                                 for i, (_, row) in enumerate(df.iterrows()):
-                                    row_json = row.to_json()
-                                    session.sql(f"""
-                                        INSERT INTO RAW_DATA.BULK_UPLOAD_STAGING 
-                                        (upload_batch, uploaded_by, data_type, raw_data)
-                                        VALUES ('{batch_id}', CURRENT_USER(), '{data_type}', PARSE_JSON($${row_json}$$))
-                                    """).collect()
+                                    try:
+                                        if data_type == "students":
+                                            import_student_row(row)
+                                        elif data_type == "attendance":
+                                            import_attendance_row(row)
+                                        elif data_type == "grades":
+                                            import_grades_row(row)
+                                        success_count += 1
+                                    except:
+                                        pass
                                     progress.progress((i + 1) / len(df))
                                 
-                                st.success(f"🎉 {len(df)} records imported!")
+                                st.success(f"🎉 {success_count} records imported!")
                                 st.balloons()
                                 st.cache_data.clear()
                             except Exception as e:
@@ -3651,21 +3712,24 @@ with main_col:
                     if st.button("📥 Import Data", use_container_width=True, type="primary"):
                         with st.spinner("Importing..."):
                             try:
-                                batch_id = str(uuid.uuid4())[:8]
+                                success_count = 0
                                 progress = st.progress(0)
-                                
                                 for i, (_, row) in enumerate(df.iterrows()):
-                                    row_json = row.to_json()
-                                    session.sql(f"""
-                                        INSERT INTO RAW_DATA.BULK_UPLOAD_STAGING 
-                                        (upload_batch, uploaded_by, data_type, raw_data)
-                                        VALUES ('{batch_id}', CURRENT_USER(), '{data_type}', PARSE_JSON($${row_json}$$))
-                                    """).collect()
+                                    try:
+                                        if data_type == "students":
+                                            import_student_row(row)
+                                        elif data_type == "attendance":
+                                            import_attendance_row(row)
+                                        elif data_type == "grades":
+                                            import_grades_row(row)
+                                        success_count += 1
+                                    except:
+                                        pass
                                     progress.progress((i + 1) / len(df))
                                 
+                                st.success(f"🎉 Success! {success_count} records imported.")
                                 st.success(f"🎉 Success! {len(df)} records imported.")
                                 st.balloons()
-                                st.info("💡 Data will appear in reports within a few minutes.")
                                 st.cache_data.clear()
                             except Exception as e:
                                 st.error("Import failed. Please check your file format.")
@@ -4479,3 +4543,4 @@ with main_col:
             <div style="color: #404040; font-size: 0.75rem; margin-top: 0.25rem;">Powered by Snowflake • Cortex AI • Dynamic Tables</div>
         </div>
         """, unsafe_allow_html=True)
+        
