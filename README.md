@@ -6,11 +6,11 @@ A Snowflake Native App that proactively identifies at-risk students using AI-dri
 
 ## The Problem
 
-Most schools have **"Dead Data."** Grades and attendance sit in Snowflake tables, but by the time a human notices a student is failing, it's often too late to help.
+Most schools have **"Dead Data."** Grades and attendance sit in spreadsheets, legacy databases, and disconnected systems. By the time a human notices a student is failing, it's often too late to help. Data exists, but it doesn't work for anyone.
 
 ## The Solution
 
-GradSync "syncs" school data with AI-driven interventions. It identifies students at risk due to subtle patterns (e.g., a drop in sentiment in teacher notes combined with a 5% dip in attendance) and provides an immediate **Success Plan** for the educator.
+GradSync brings modern data infrastructure to an old problem. By consolidating school data into Snowflake and applying AI-driven analysis, it identifies students at risk due to subtle patterns (e.g., a drop in sentiment in teacher notes combined with a 5% dip in attendance) and provides an immediate **Success Plan** for the educator—before it's too late.
 
 ---
 
