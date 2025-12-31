@@ -1206,10 +1206,13 @@ def log_intervention(student_id, plan_text, risk_score, primary_factor, counselo
     """Log a new intervention plan"""
     try:
         ensure_intervention_table()
+        # Handle None/empty values
+        pf_sql = f"'{primary_factor}'" if primary_factor and str(primary_factor) != 'None' else "'Unknown'"
+        cr_sql = "TRUE" if counselor_referral else "FALSE"
         session.sql(f"""
             INSERT INTO APP.INTERVENTION_LOG 
             (student_id, plan_text, risk_score_at_plan, primary_risk_factor, counselor_referral, created_by)
-            VALUES ('{student_id}', $${plan_text}$$, {risk_score}, '{primary_factor}', {counselor_referral}, CURRENT_USER())
+            VALUES ('{student_id}', $${plan_text}$$, {risk_score}, {pf_sql}, {cr_sql}, CURRENT_USER())
         """).collect()
         return True
     except Exception as e:
@@ -2368,31 +2371,35 @@ with main_col:
             """, unsafe_allow_html=True)
             
             try:
-                at_risk_df = get_at_risk_students()
+                # Get all students, not just at-risk
+                all_students_df = get_all_students()
                 
-                if not at_risk_df.empty:
+                if not all_students_df.empty:
                     col1, col2 = st.columns([1, 2])
                     
                     with col1:
-                        selected = st.selectbox("Select Student", options=at_risk_df['STUDENT_NAME'].tolist(), help="Students shown here have been flagged as at-risk")
-                        student_data = at_risk_df[at_risk_df['STUDENT_NAME'] == selected].iloc[0].to_dict()
+                        selected = st.selectbox("Select Student", options=all_students_df['STUDENT_NAME'].tolist(), help="Select any student to create an intervention plan")
+                        student_data = all_students_df[all_students_df['STUDENT_NAME'] == selected].iloc[0].to_dict()
                         
-                        color = "red" if student_data['RISK_SCORE'] >= 70 else "yellow" if student_data['RISK_SCORE'] >= 50 else ""
-                        risk_label = "Critical" if student_data['RISK_SCORE'] >= 70 else "High" if student_data['RISK_SCORE'] >= 50 else "Moderate"
+                        risk_score = student_data.get('RISK_SCORE', 0) or 0
+                        color = "red" if risk_score >= 70 else "yellow" if risk_score >= 50 else ""
+                        risk_label = "Critical" if risk_score >= 70 else "High" if risk_score >= 50 else "Low"
                         
                         st.markdown(f"""
                         <div class="metric-box" style="text-align: center;">
                             <div class="metric-label">Risk Level</div>
                             <div class="metric-value {color}" style="font-size: 1.5rem;">{risk_label}</div>
-                            <div style="color: #606060; font-size: 0.8rem;">Score: {student_data['RISK_SCORE']}</div>
+                            <div style="color: #606060; font-size: 0.8rem;">Score: {risk_score:.0f}</div>
                         </div>
                         """, unsafe_allow_html=True)
                         
                         c1, c2 = st.columns(2)
                         with c1:
-                            st.metric("Attendance", f"{student_data['ATTENDANCE_RATE']}%")
+                            att_rate = student_data.get('ATTENDANCE_RATE', 0) or 0
+                            st.metric("Attendance", f"{att_rate:.0f}%")
                         with c2:
-                            st.metric("GPA", f"{student_data['CURRENT_GPA']:.1f}")
+                            gpa = student_data.get('CURRENT_GPA', 0) or 0
+                            st.metric("GPA", f"{gpa:.1f}")
                     
                     with col2:
                         if st.button("🤖 Generate Success Plan", use_container_width=True, type="primary"):
@@ -3810,9 +3817,10 @@ with main_col:
         """, unsafe_allow_html=True)
         
         try:
-            at_risk_df = get_at_risk_students()
+            # Get all students, not just at-risk
+            all_students_df = get_all_students()
             
-            if not at_risk_df.empty:
+            if not all_students_df.empty:
                 col1, col2 = st.columns([1, 2])
                 
                 with col1:
@@ -3821,17 +3829,18 @@ with main_col:
                         <div class="panel-title" style="margin-bottom: 1rem;">👤 Select Student</div>
                     """, unsafe_allow_html=True)
                     
-                    selected = st.selectbox("Choose a student", options=at_risk_df['STUDENT_NAME'].tolist(), label_visibility="collapsed", help="Students shown here have been flagged as at-risk")
-                    student_data = at_risk_df[at_risk_df['STUDENT_NAME'] == selected].iloc[0].to_dict()
+                    selected = st.selectbox("Choose a student", options=all_students_df['STUDENT_NAME'].tolist(), label_visibility="collapsed", help="Select any student to create an intervention plan")
+                    student_data = all_students_df[all_students_df['STUDENT_NAME'] == selected].iloc[0].to_dict()
                     
-                    color = "red" if student_data['RISK_SCORE'] >= 70 else "yellow" if student_data['RISK_SCORE'] >= 50 else ""
-                    risk_label = "Critical" if student_data['RISK_SCORE'] >= 70 else "High" if student_data['RISK_SCORE'] >= 50 else "Moderate"
+                    risk_score = student_data.get('RISK_SCORE', 0) or 0
+                    color = "red" if risk_score >= 70 else "yellow" if risk_score >= 50 else ""
+                    risk_label = "Critical" if risk_score >= 70 else "High" if risk_score >= 50 else "Low"
                     
                     st.markdown(f"""
                     <div class="metric-box" style="margin-top: 1rem; text-align: center;">
                         <div class="metric-label">Risk Level</div>
                         <div class="metric-value {color}" style="font-size: 1.5rem;">{risk_label}</div>
-                        <div style="color: #606060; font-size: 0.8rem;">Score: {student_data['RISK_SCORE']}</div>
+                        <div style="color: #606060; font-size: 0.8rem;">Score: {risk_score:.0f}</div>
                     </div>
                     """, unsafe_allow_html=True)
                     
