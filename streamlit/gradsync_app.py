@@ -640,19 +640,55 @@ def get_ai_insights():
     except:
         return pd.DataFrame()
 
-def generate_success_plan(student_data):
-    prompt = f"""You are an educational advisor. Generate a specific, actionable Success Plan with 3-4 bullet points.
+def generate_success_plan(student_data, risk_breakdown=None, recent_notes=None):
+    """Generate enhanced AI Success Plan"""
+    risk_info = ""
+    if risk_breakdown:
+        risk_info = f"\nRisk: Attendance {risk_breakdown.get('attendance', 0):.0f}, Academic {risk_breakdown.get('academic', 0):.0f}\nPrimary: {risk_breakdown.get('primary_factor', 'Unknown')}"
+    notes_info = f"\nNotes: {recent_notes[:200]}" if recent_notes else ""
+    needs_counselor = risk_breakdown and risk_breakdown.get('primary_factor') in ['Social-Emotional Risk', 'Family Situation']
     
-    Student: {student_data['STUDENT_NAME']} | Grade: {student_data['GRADE_LEVEL']}
-    Attendance: {student_data['ATTENDANCE_RATE']}% | GPA: {student_data['CURRENT_GPA']}
-    Risk Score: {student_data['RISK_SCORE']}
+    prompt = f"""Create a 4-point Success Plan:
+Student: {student_data['STUDENT_NAME']} | Grade {student_data['GRADE_LEVEL']}
+Attendance: {student_data['ATTENDANCE_RATE']}% | GPA: {student_data['CURRENT_GPA']:.1f} | Risk: {student_data['RISK_SCORE']}{risk_info}{notes_info}
+
+4 actions (1 sentence each): 1.This Week 2.Academic 3.Connection 4.Family
+{"Recommend counselor." if needs_counselor else ""}"""
+
+    try:
+        result = session.sql(f"""SELECT SNOWFLAKE.CORTEX.COMPLETE('mistral-large', $${prompt}$$) as plan""").collect()
+        return result[0]['PLAN'], needs_counselor
+    except Exception as e:
+        return f"Error: {e}", False
     
-    Provide interventions the teacher can implement this week."""
-    
-    result = session.sql(f"""
-        SELECT SNOWFLAKE.CORTEX.COMPLETE('mistral-large', $${prompt}$$) as plan
-    """).collect()
-    return result[0]['PLAN']
+def get_student_risk_breakdown(student_id):
+    try:
+        result = session.sql(f"""
+            SELECT attendance_risk_contribution, academic_risk_contribution,
+                   sentiment_risk_contribution, ai_signal_risk_contribution, primary_risk_factor
+            FROM GRADSYNC_DB.ANALYTICS.RISK_BREAKDOWN WHERE student_id = '{student_id}'
+        """).collect()
+        if result:
+            return {
+                'attendance': float(result[0]['ATTENDANCE_RISK_CONTRIBUTION'] or 0),
+                'academic': float(result[0]['ACADEMIC_RISK_CONTRIBUTION'] or 0),
+                'sentiment': float(result[0]['SENTIMENT_RISK_CONTRIBUTION'] or 0),
+                'ai_signals': float(result[0]['AI_SIGNAL_RISK_CONTRIBUTION'] or 0),
+                'primary_factor': result[0]['PRIMARY_RISK_FACTOR']
+            }
+    except:
+        pass
+    return None
+
+def get_recent_notes_summary(student_id):
+    try:
+        result = session.sql(f"""
+            SELECT LISTAGG(note_text, ' | ') as notes FROM GRADSYNC_DB.APP.TEACHER_NOTES
+            WHERE student_id = '{student_id}' AND created_at >= DATEADD('day', -30, CURRENT_TIMESTAMP())
+        """).collect()
+        return result[0]['NOTES'] if result and result[0]['NOTES'] else None
+    except:
+        return None
 
 SUPPORTED_LANGUAGES = {
     'Spanish': 'es', 'Chinese': 'zh', 'Vietnamese': 'vi', 'Korean': 'ko',
@@ -675,6 +711,109 @@ def get_parent_language(student_id):
         return result[0]['PARENT_LANGUAGE'] if result else 'English'
     except:
         return 'English'
+
+# ============================================
+# INTERVENTION TRACKING FUNCTIONS
+# ============================================
+
+
+def ensure_intervention_table():
+    """Create intervention table if it doesn't exist"""
+    try:
+        session.sql("""
+            CREATE TABLE IF NOT EXISTS APP.INTERVENTION_LOG (
+                log_id INT AUTOINCREMENT PRIMARY KEY,
+                student_id VARCHAR(20),
+                plan_generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP(),
+                plan_text VARCHAR(4000),
+                risk_score_at_plan FLOAT,
+                primary_risk_factor VARCHAR(100),
+                counselor_referral BOOLEAN DEFAULT FALSE,
+                interventions_completed VARCHAR(2000),
+                outcome_notes VARCHAR(1000),
+                outcome_logged_at TIMESTAMP,
+                created_by VARCHAR(100)
+            )
+        """).collect()
+        return True
+    except:
+        return False
+
+
+def log_intervention(student_id, plan_text, risk_score, primary_factor, counselor_referral):
+    """Log a new intervention plan"""
+    try:
+        ensure_intervention_table()
+        session.sql(f"""
+            INSERT INTO APP.INTERVENTION_LOG 
+            (student_id, plan_text, risk_score_at_plan, primary_risk_factor, counselor_referral, created_by)
+            VALUES ('{student_id}', $${plan_text}$$, {risk_score}, '{primary_factor}', {counselor_referral}, CURRENT_USER())
+        """).collect()
+        return True
+    except Exception as e:
+        st.error(f"Failed to log intervention: {e}")
+        return False
+
+def update_intervention_outcome(log_id, interventions_completed, outcome_notes):
+    """Update intervention with completed actions and outcomes"""
+    try:
+        session.sql(f"""
+            UPDATE APP.INTERVENTION_LOG 
+            SET interventions_completed = $${interventions_completed}$$,
+                outcome_notes = $${outcome_notes}$$,
+                outcome_logged_at = CURRENT_TIMESTAMP()
+            WHERE log_id = {log_id}
+        """).collect()
+        return True
+    except Exception as e:
+        st.error(f"Failed to update outcome: {e}")
+        return False
+
+@st.cache_data(ttl=60)
+def get_intervention_history(student_id=None):
+    """Get intervention history, optionally filtered by student"""
+    try:
+        ensure_intervention_table()
+        where_clause = f"WHERE i.student_id = '{student_id}'" if student_id else ""
+        return session.sql(f"""
+            SELECT 
+                i.log_id,
+                i.student_id,
+                s.first_name || ' ' || s.last_name as student_name,
+                s.grade_level,
+                i.plan_generated_at,
+                i.plan_text,
+                i.risk_score_at_plan,
+                i.primary_risk_factor,
+                i.counselor_referral,
+                i.interventions_completed,
+                i.outcome_notes,
+                i.outcome_logged_at,
+                CASE WHEN i.outcome_logged_at IS NOT NULL THEN 'Completed' ELSE 'In Progress' END as status
+            FROM APP.INTERVENTION_LOG i
+            JOIN RAW_DATA.STUDENTS s ON i.student_id = s.student_id
+            {where_clause}
+            ORDER BY i.plan_generated_at DESC
+        """).to_pandas()
+    except:
+        return pd.DataFrame()
+
+@st.cache_data(ttl=60)
+def get_intervention_stats():
+    """Get intervention statistics"""
+    try:
+        ensure_intervention_table()
+        return session.sql("""
+            SELECT 
+                COUNT(*) as total_plans,
+                SUM(CASE WHEN outcome_logged_at IS NOT NULL THEN 1 ELSE 0 END) as completed,
+                SUM(CASE WHEN outcome_logged_at IS NULL THEN 1 ELSE 0 END) as in_progress,
+                SUM(CASE WHEN counselor_referral THEN 1 ELSE 0 END) as counselor_referrals,
+                ROUND(AVG(risk_score_at_plan), 1) as avg_risk_score
+            FROM APP.INTERVENTION_LOG
+        """).collect()[0]
+    except:
+        return None
 
 # ============================================
 # LAYOUT: Left Nav + Main Content
@@ -700,12 +839,13 @@ with nav_col:
         ("🏠", "Overview", "dashboard"),
         ("📊", "Analytics", "analytics"),
         ("📝", "Observations", "observation"),
-        ("�",  "Counselor Alerts", "alerts"),
+        ("🚨",  "Counselor Alerts", "alerts"),
         ("🧠", "AI Insights", "insights"),
         ("⚡", "Early Warnings", "warnings"),
         ("📈", "Sentiment Trends", "sentiment"),
         ("📤", "Import Data", "upload"),
         ("🎯", "Success Plans", "plans"),
+        ("📋", "Interventions", "interventions"),
     ]
     
     for icon, label, key in nav_items:
@@ -1968,15 +2108,28 @@ with main_col:
                     """, unsafe_allow_html=True)
                     
                     if st.button("🤖 Generate Success Plan", use_container_width=True, type="primary"):
-                        with st.spinner("AI is analyzing student data and generating recommendations..."):
+                        with st.spinner("AI is analyzing student data..."):
                             try:
-                                plan = generate_success_plan(student_data)
+                                # Get risk breakdown and notes for enhanced plan
+                                student_id = student_data.get('STUDENT_ID', '')
+                                risk_breakdown = get_student_risk_breakdown(student_id) if student_id else None
+                                recent_notes = get_recent_notes_summary(student_id) if student_id else None
+                                
+                                plan, needs_counselor = generate_success_plan(student_data, risk_breakdown, recent_notes)
+                                
+                                # Log the intervention
+                                primary_factor = risk_breakdown.get('primary_factor', 'Unknown') if risk_breakdown else 'Unknown'
+                                if student_id:
+                                    log_intervention(student_id, plan, student_data['RISK_SCORE'], primary_factor, needs_counselor)
                                 
                                 st.markdown("""
                                 <div style="background: rgba(34, 197, 94, 0.1); border-radius: 8px; padding: 0.75rem; margin-bottom: 1rem;">
-                                    <span style="color: #22c55e;">✓ Plan generated successfully</span>
+                                    <span style="color: #22c55e;">✓ Plan generated and logged</span>
                                 </div>
                                 """, unsafe_allow_html=True)
+                                
+                                if needs_counselor:
+                                    st.warning("⚠️ Social-emotional concerns detected. Consider counselor referral.")
                                 
                                 st.markdown(plan)
                                 
@@ -2013,6 +2166,142 @@ with main_col:
                 st.success("🎉 All students are performing well!")
         except Exception as e:
             st.warning(f"Setup required: {e}")
+
+    # ============================================
+    # PAGE: INTERVENTION TRACKING
+    # ============================================
+    
+    elif page == "interventions":
+        st.markdown('<div class="page-header">📋 Intervention Tracking</div>', unsafe_allow_html=True)
+        st.markdown('<div class="page-subtitle">Track and manage student intervention plans and outcomes</div>', unsafe_allow_html=True)
+        
+        # Guidance banner
+        st.markdown("""
+        <div class="welcome-banner">
+            <div style="display: flex; align-items: flex-start; gap: 12px;">
+                <span style="font-size: 1.5rem;">📊</span>
+                <div>
+                    <div style="color: #22c55e; font-weight: 500; margin-bottom: 0.25rem;">Track Your Progress</div>
+                    <div style="color: #a0a0a0; font-size: 0.85rem;">View all intervention plans you've created, mark completed actions, and log outcomes to measure effectiveness.</div>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Stats overview
+        stats = get_intervention_stats()
+        if stats:
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                st.markdown(f"""
+                <div class="metric-box">
+                    <div class="metric-label">Total Plans</div>
+                    <div class="metric-value">{stats['TOTAL_PLANS']}</div>
+                </div>
+                """, unsafe_allow_html=True)
+            with col2:
+                st.markdown(f"""
+                <div class="metric-box">
+                    <div class="metric-label">In Progress</div>
+                    <div class="metric-value yellow">{stats['IN_PROGRESS']}</div>
+                </div>
+                """, unsafe_allow_html=True)
+            with col3:
+                st.markdown(f"""
+                <div class="metric-box">
+                    <div class="metric-label">Completed</div>
+                    <div class="metric-value green">{stats['COMPLETED']}</div>
+                </div>
+                """, unsafe_allow_html=True)
+            with col4:
+                st.markdown(f"""
+                <div class="metric-box">
+                    <div class="metric-label">Counselor Referrals</div>
+                    <div class="metric-value">{stats['COUNSELOR_REFERRALS']}</div>
+                </div>
+                """, unsafe_allow_html=True)
+        
+        st.markdown("<hr>", unsafe_allow_html=True)
+        
+        # Filter options
+        col_filter, col_spacer = st.columns([1, 3])
+        with col_filter:
+            filter_status = st.selectbox("Filter by status", ["All", "In Progress", "Completed"])
+        
+        # Get intervention history
+        history_df = get_intervention_history()
+        
+        if not history_df.empty:
+            # Apply filter
+            if filter_status == "In Progress":
+                history_df = history_df[history_df['STATUS'] == 'In Progress']
+            elif filter_status == "Completed":
+                history_df = history_df[history_df['STATUS'] == 'Completed']
+            
+            for _, row in history_df.iterrows():
+                status_badge = "badge-yellow" if row['STATUS'] == 'In Progress' else "badge-green"
+                counselor_text = " | 🚨 Counselor Referral" if row['COUNSELOR_REFERRAL'] else ''
+                created_date = row['PLAN_GENERATED_AT'].strftime('%b %d, %Y') if pd.notna(row['PLAN_GENERATED_AT']) else 'N/A'
+                
+                with st.container():
+                    col_info, col_status = st.columns([3, 1])
+                    with col_info:
+                        st.markdown(f"**{row['STUDENT_NAME']}** · Grade {int(row['GRADE_LEVEL'])}{counselor_text}")
+                        st.caption(f"Risk: {row['RISK_SCORE_AT_PLAN']} | Factor: {row['PRIMARY_RISK_FACTOR']} | Created: {created_date}")
+                    with col_status:
+                        if row['STATUS'] == 'In Progress':
+                            st.warning("In Progress")
+                        else:
+                            st.success("Completed")
+                
+                with st.expander(f"📄 View Plan & Log Outcome", expanded=False):
+                    st.markdown("**Intervention Plan:**")
+                    st.markdown(row['PLAN_TEXT'] if row['PLAN_TEXT'] else "No plan text available")
+                    
+                    if row['STATUS'] == 'In Progress':
+                        st.markdown("<hr>", unsafe_allow_html=True)
+                        st.markdown("**Log Outcome:**")
+                        
+                        interventions = st.text_area(
+                            "What interventions were completed?",
+                            key=f"interventions_{row['LOG_ID']}",
+                            placeholder="e.g., Met with student weekly, contacted parent, arranged tutoring...",
+                            height=80
+                        )
+                        
+                        outcome = st.text_area(
+                            "Outcome notes",
+                            key=f"outcome_{row['LOG_ID']}",
+                            placeholder="e.g., Student attendance improved by 15%, GPA increased...",
+                            height=80
+                        )
+                        
+                        if st.button("✅ Mark Complete", key=f"complete_{row['LOG_ID']}", type="primary"):
+                            if interventions and outcome:
+                                if update_intervention_outcome(row['LOG_ID'], interventions, outcome):
+                                    st.success("Outcome logged successfully!")
+                                    st.cache_data.clear()
+                                    st.rerun()
+                            else:
+                                st.warning("Please fill in both fields before marking complete.")
+                    else:
+                        if row['INTERVENTIONS_COMPLETED']:
+                            st.markdown("<hr>", unsafe_allow_html=True)
+                            st.markdown("**Completed Interventions:**")
+                            st.markdown(row['INTERVENTIONS_COMPLETED'])
+                        if row['OUTCOME_NOTES']:
+                            st.markdown("**Outcome:**")
+                            st.markdown(row['OUTCOME_NOTES'])
+                        if pd.notna(row['OUTCOME_LOGGED_AT']):
+                            st.caption(f"Completed on: {row['OUTCOME_LOGGED_AT'].strftime('%b %d, %Y')}")
+        else:
+            st.markdown("""
+            <div class="empty-state">
+                <div class="empty-state-icon">📋</div>
+                <div>No intervention plans yet</div>
+                <div style="font-size: 0.85rem; margin-top: 0.5rem;">Generate a Success Plan from the Success Plans page to start tracking interventions.</div>
+            </div>
+            """, unsafe_allow_html=True)
 
     # ============================================
     # PAGE: AUTO-SYNC STATUS
