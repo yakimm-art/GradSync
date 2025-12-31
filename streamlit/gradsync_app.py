@@ -508,6 +508,63 @@ def get_early_warning_students():
     except:
         return pd.DataFrame()
 
+@st.cache_data(ttl=120)
+def get_sentiment_trends(student_id):
+    """Get sentiment history for a student"""
+    try:
+        return session.sql(f"""
+            SELECT 
+                DATE_TRUNC('day', created_at) as note_date,
+                AVG(sentiment_score) as avg_sentiment,
+                COUNT(*) as note_count
+            FROM GRADSYNC_DB.APP.TEACHER_NOTES
+            WHERE student_id = '{student_id}'
+            AND created_at >= DATEADD('day', -90, CURRENT_TIMESTAMP())
+            GROUP BY DATE_TRUNC('day', created_at)
+            ORDER BY note_date
+        """).to_pandas()
+    except:
+        return pd.DataFrame()
+
+@st.cache_data(ttl=120)
+def get_sentiment_summary():
+    """Get sentiment summary for all students"""
+    try:
+        return session.sql("""
+            WITH current_sentiment AS (
+                SELECT student_id, AVG(sentiment_score) as current_avg, COUNT(*) as note_count
+                FROM GRADSYNC_DB.APP.TEACHER_NOTES
+                WHERE created_at >= DATEADD('day', -14, CURRENT_TIMESTAMP())
+                GROUP BY student_id
+            ),
+            previous_sentiment AS (
+                SELECT student_id, AVG(sentiment_score) as previous_avg
+                FROM GRADSYNC_DB.APP.TEACHER_NOTES
+                WHERE created_at BETWEEN DATEADD('day', -28, CURRENT_TIMESTAMP()) AND DATEADD('day', -14, CURRENT_TIMESTAMP())
+                GROUP BY student_id
+            )
+            SELECT 
+                s.student_id,
+                s.first_name || ' ' || s.last_name as student_name,
+                s.grade_level,
+                COALESCE(c.current_avg, 0) as current_sentiment,
+                COALESCE(p.previous_avg, 0) as previous_sentiment,
+                COALESCE(c.current_avg, 0) - COALESCE(p.previous_avg, 0) as sentiment_change,
+                CASE 
+                    WHEN COALESCE(c.current_avg, 0) - COALESCE(p.previous_avg, 0) > 0.1 THEN 'Improving'
+                    WHEN COALESCE(c.current_avg, 0) - COALESCE(p.previous_avg, 0) < -0.1 THEN 'Declining'
+                    ELSE 'Stable'
+                END as trend,
+                COALESCE(c.note_count, 0) as recent_note_count
+            FROM GRADSYNC_DB.RAW_DATA.STUDENTS s
+            LEFT JOIN current_sentiment c ON s.student_id = c.student_id
+            LEFT JOIN previous_sentiment p ON s.student_id = p.student_id
+            WHERE c.note_count > 0
+            ORDER BY sentiment_change ASC
+        """).to_pandas()
+    except:
+        return pd.DataFrame()
+
 @st.cache_data(ttl=60)
 def get_recent_notes():
     """Get recent notes with AI classification"""
@@ -646,6 +703,7 @@ with nav_col:
         ("�",  "Counselor Alerts", "alerts"),
         ("🧠", "AI Insights", "insights"),
         ("⚡", "Early Warnings", "warnings"),
+        ("📈", "Sentiment Trends", "sentiment"),
         ("📤", "Import Data", "upload"),
         ("🎯", "Success Plans", "plans"),
     ]
@@ -1520,6 +1578,133 @@ with main_col:
         except Exception as e:
             st.error(f"Error: {e}")
             st.info("Run sql/12_early_warning_system.sql to set up early warnings.")
+
+
+    # ============================================
+    # PAGE: SENTIMENT TRENDS
+    # ============================================
+    
+    elif page == "sentiment":
+        st.markdown('<div class="page-header">📈 Sentiment Trends</div>', unsafe_allow_html=True)
+        st.markdown('<div class="page-subtitle">Track how teacher observations change over time</div>', unsafe_allow_html=True)
+        
+        try:
+            summary_df = get_sentiment_summary()
+            
+            if summary_df.empty:
+                st.markdown("""
+                <div class="panel" style="text-align: center; padding: 3rem;">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">📝</div>
+                    <div style="color: #808080; font-size: 1.1rem;">No sentiment data yet</div>
+                    <div style="color: #606060; font-size: 0.9rem; margin-top: 0.5rem;">Add teacher observations to see trends.</div>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                # Stats
+                improving = len(summary_df[summary_df['TREND'] == 'Improving'])
+                declining = len(summary_df[summary_df['TREND'] == 'Declining'])
+                stable = len(summary_df[summary_df['TREND'] == 'Stable'])
+                
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.markdown(f"""
+                    <div class="metric-box">
+                        <div class="metric-label">📈 Improving</div>
+                        <div class="metric-value green">{improving}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                with col2:
+                    st.markdown(f"""
+                    <div class="metric-box">
+                        <div class="metric-label">➡️ Stable</div>
+                        <div class="metric-value">{stable}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                with col3:
+                    st.markdown(f"""
+                    <div class="metric-box">
+                        <div class="metric-label">📉 Declining</div>
+                        <div class="metric-value red">{declining}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                st.markdown("<br>", unsafe_allow_html=True)
+                
+                # Show declining students first
+                if declining > 0:
+                    st.markdown("""
+                    <div class="panel" style="border-color: rgba(239, 68, 68, 0.3);">
+                        <div class="panel-title" style="color: #ef4444; margin-bottom: 0.75rem;">⚠️ Declining Sentiment</div>
+                    """, unsafe_allow_html=True)
+                    
+                    for _, student in summary_df[summary_df['TREND'] == 'Declining'].iterrows():
+                        change = student['SENTIMENT_CHANGE']
+                        st.markdown(f"""
+                        <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #1a1a1a;">
+                            <span style="color: #e0e0e0;">{student['STUDENT_NAME']}</span>
+                            <span style="color: #ef4444;">{change:+.2f} ↓</span>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    
+                    st.markdown("</div>", unsafe_allow_html=True)
+                
+                # Show improving students
+                if improving > 0:
+                    st.markdown("""
+                    <div class="panel" style="border-color: rgba(34, 197, 94, 0.3); margin-top: 1rem;">
+                        <div class="panel-title" style="color: #22c55e; margin-bottom: 0.75rem;">🎉 Improving Sentiment</div>
+                    """, unsafe_allow_html=True)
+                    
+                    for _, student in summary_df[summary_df['TREND'] == 'Improving'].iterrows():
+                        change = student['SENTIMENT_CHANGE']
+                        st.markdown(f"""
+                        <div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #1a1a1a;">
+                            <span style="color: #e0e0e0;">{student['STUDENT_NAME']}</span>
+                            <span style="color: #22c55e;">{change:+.2f} ↑</span>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    
+                    st.markdown("</div>", unsafe_allow_html=True)
+                
+                # Student detail view
+                st.markdown("<br>", unsafe_allow_html=True)
+                st.markdown("""
+                <div class="panel">
+                    <div class="panel-title" style="margin-bottom: 1rem;">📊 Student Sentiment History</div>
+                """, unsafe_allow_html=True)
+                
+                student_options = dict(zip(summary_df['STUDENT_NAME'], summary_df['STUDENT_ID']))
+                selected = st.selectbox("Select student", options=list(student_options.keys()))
+                
+                if selected:
+                    student_id = student_options[selected]
+                    trend_df = get_sentiment_trends(student_id)
+                    
+                    if not trend_df.empty:
+                        # Simple line chart
+                        st.line_chart(trend_df.set_index('NOTE_DATE')['AVG_SENTIMENT'])
+                        
+                        # Current status
+                        student_data = summary_df[summary_df['STUDENT_ID'] == student_id].iloc[0]
+                        trend = student_data['TREND']
+                        trend_color = '#22c55e' if trend == 'Improving' else '#ef4444' if trend == 'Declining' else '#808080'
+                        trend_icon = '📈' if trend == 'Improving' else '📉' if trend == 'Declining' else '➡️'
+                        
+                        st.markdown(f"""
+                        <div style="text-align: center; margin-top: 1rem;">
+                            <span style="color: {trend_color}; font-size: 1.2rem; font-weight: 500;">{trend_icon} {trend}</span>
+                            <div style="color: #606060; font-size: 0.85rem; margin-top: 0.25rem;">
+                                Current: {student_data['CURRENT_SENTIMENT']:.2f} | Previous: {student_data['PREVIOUS_SENTIMENT']:.2f}
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    else:
+                        st.caption("No trend data available for this student.")
+                
+                st.markdown("</div>", unsafe_allow_html=True)
+                
+        except Exception as e:
+            st.error(f"Error: {e}")
 
 
     # ============================================
