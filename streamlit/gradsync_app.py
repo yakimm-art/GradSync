@@ -448,6 +448,75 @@ def analyze_sentiment(text):
     """).collect()
     return float(result[0]['SENTIMENT'])
 
+def classify_note(text):
+    """Classify note using Cortex AI into concern categories"""
+    try:
+        result = session.sql(f"""
+            SELECT SNOWFLAKE.CORTEX.CLASSIFY_TEXT(
+                $${text}$$,
+                ['Academic Struggle', 'Behavioral Concern', 'Safety Threat', 
+                 'Social-Emotional Risk', 'Family Situation', 'Positive Progress']
+            ) as classification
+        """).collect()
+        classification = result[0]['CLASSIFICATION']
+        import json
+        if isinstance(classification, str):
+            classification = json.loads(classification)
+        return classification.get('label', 'Unknown'), float(classification.get('score', 0.95))
+    except Exception as e:
+        st.warning(f"Classification error: {e}")
+        return None, 0.0
+
+def is_high_risk_category(classification):
+    """Check if classification is high-risk (requires counselor review)"""
+    return classification in ('Social-Emotional Risk', 'Family Situation', 'Safety Threat')
+
+@st.cache_data(ttl=60)
+def get_counselor_alerts():
+    """Get high-risk notes pending review"""
+    return session.sql("""
+        SELECT 
+            n.note_id,
+            n.student_id,
+            s.first_name || ' ' || s.last_name as student_name,
+            s.grade_level,
+            n.note_text,
+            n.note_category as teacher_category,
+            n.ai_classification,
+            n.ai_confidence,
+            n.sentiment_score,
+            n.is_high_risk,
+            n.created_at,
+            n.reviewed_by,
+            n.reviewed_at
+        FROM GRADSYNC_DB.APP.TEACHER_NOTES n
+        JOIN GRADSYNC_DB.RAW_DATA.STUDENTS s ON n.student_id = s.student_id
+        WHERE n.is_high_risk = TRUE
+        ORDER BY 
+            CASE WHEN n.reviewed_at IS NULL THEN 0 ELSE 1 END,
+            n.created_at DESC
+    """).to_pandas()
+
+@st.cache_data(ttl=60)
+def get_recent_notes():
+    """Get recent notes with AI classification"""
+    return session.sql("""
+        SELECT 
+            n.note_id,
+            s.first_name || ' ' || s.last_name as student_name,
+            n.note_text,
+            n.note_category,
+            n.ai_classification,
+            n.ai_confidence,
+            n.sentiment_score,
+            n.is_high_risk,
+            n.created_at
+        FROM GRADSYNC_DB.APP.TEACHER_NOTES n
+        JOIN GRADSYNC_DB.RAW_DATA.STUDENTS s ON n.student_id = s.student_id
+        ORDER BY n.created_at DESC
+        LIMIT 50
+    """).to_pandas()
+
 def generate_success_plan(student_data):
     prompt = f"""You are an educational advisor. Generate a specific, actionable Success Plan with 3-4 bullet points.
     
@@ -508,6 +577,7 @@ with nav_col:
         ("🏠", "Overview", "dashboard"),
         ("📊", "Analytics", "analytics"),
         ("📝", "Observations", "observation"),
+        ("�",  "Counselor Alerts", "alerts"),
         ("📤", "Import Data", "upload"),
         ("🎯", "Success Plans", "plans"),
     ]
@@ -946,31 +1016,60 @@ with main_col:
                 submitted = st.form_submit_button("💾 Save Observation", use_container_width=True)
                 
                 if submitted and note_text and selected_student:
-                    with st.spinner("Saving and analyzing..."):
+                    with st.spinner("Saving and analyzing with AI..."):
                         try:
                             start_time = time.time()
                             sentiment = analyze_sentiment(note_text)
+                            ai_class, ai_conf = classify_note(note_text)
+                            is_high_risk = is_high_risk_category(ai_class) if ai_class else False
                             student_id = student_options.get(selected_student, selected_student)
+                            ai_class_sql = f"'{ai_class}'" if ai_class else "NULL"
                             
                             session.sql(f"""
-                                INSERT INTO APP.TEACHER_NOTES 
-                                (student_id, teacher_id, note_text, note_category, sentiment_score)
-                                VALUES ('{student_id}', 'CURRENT_USER', $${note_text}$$, '{category}', {sentiment})
+                                INSERT INTO GRADSYNC_DB.APP.TEACHER_NOTES 
+                                (student_id, teacher_id, note_text, note_category, sentiment_score,
+                                 ai_classification, ai_confidence, is_high_risk)
+                                VALUES ('{student_id}', 'CURRENT_USER', $${note_text}$$, '{category}', {sentiment},
+                                        {ai_class_sql}, {ai_conf}, {is_high_risk})
                             """).collect()
                             
                             latency_ms = (time.time() - start_time) * 1000
-                            emoji = "😊" if sentiment > 0.3 else "😐" if sentiment > -0.3 else "😟"
-                            label = "Positive" if sentiment > 0.3 else "Neutral" if sentiment > -0.3 else "Negative"
-                            color = "green" if sentiment > 0.3 else "" if sentiment > -0.3 else "red"
+                            
+                            # Override sentiment display for high-risk content
+                            if is_high_risk:
+                                emoji = "🚨"
+                                label = "Concerning"
+                                color = "red"
+                            else:
+                                emoji = "😊" if sentiment > 0.3 else "😐" if sentiment > -0.3 else "😟"
+                                label = "Positive" if sentiment > 0.3 else "Neutral" if sentiment > -0.3 else "Negative"
+                                color = "green" if sentiment > 0.3 else "" if sentiment > -0.3 else "red"
                             
                             st.success("✅ Observation saved!")
                             st.markdown(f"""
                             <div class="metric-box" style="text-align: center; margin-top: 1rem;">
                                 <div style="font-size: 2.5rem;">{emoji}</div>
                                 <div class="metric-value {color}" style="font-size: 1.2rem;">{label}</div>
-                                <div style="color: #606060; font-size: 0.8rem;">Score: {sentiment:.2f} | {latency_ms:.0f}ms</div>
+                                <div style="color: #606060; font-size: 0.8rem;">Sentiment: {sentiment:.2f}</div>
                             </div>
                             """, unsafe_allow_html=True)
+                            
+                            if ai_class:
+                                risk_badge = '⚠️ HIGH RISK' if is_high_risk else ''
+                                badge_style = 'background: rgba(239, 68, 68, 0.15); color: #ef4444;' if is_high_risk else 'background: rgba(59, 130, 246, 0.15); color: #3b82f6;'
+                                st.markdown(f"""
+                                <div class="metric-box" style="text-align: center; margin-top: 0.75rem;">
+                                    <div style="color: #808080; font-size: 0.75rem; margin-bottom: 0.5rem;">AI Classification</div>
+                                    <div style="{badge_style} padding: 0.5rem 1rem; border-radius: 6px; display: inline-block; font-weight: 500;">
+                                        {ai_class} {risk_badge}
+                                    </div>
+                                    <div style="color: #606060; font-size: 0.75rem; margin-top: 0.5rem;">Confidence: {ai_conf:.0%}</div>
+                                </div>
+                                """, unsafe_allow_html=True)
+                                if is_high_risk:
+                                    st.warning("🔔 This note has been flagged for counselor review.")
+                            
+                            st.caption(f"Processed in {latency_ms:.0f}ms")
                             st.cache_data.clear()
                         except Exception as e:
                             st.error(f"Error: {e}")
@@ -984,6 +1083,124 @@ with main_col:
                 <div class="activity-item">😟 <strong>Negative</strong> - Score < -0.3</div>
             </div>
             """, unsafe_allow_html=True)
+
+
+    # ============================================
+    # PAGE: COUNSELOR ALERTS
+    # ============================================
+    
+    elif page == "alerts":
+        st.markdown('<div class="page-header">🔔 Counselor Alert Queue</div>', unsafe_allow_html=True)
+        st.markdown('<div class="page-subtitle">High-risk notes requiring review</div>', unsafe_allow_html=True)
+        
+        # Info banner
+        st.markdown("""
+        <div class="welcome-banner">
+            <div style="display: flex; align-items: flex-start; gap: 12px;">
+                <span style="font-size: 1.5rem;">⚠️</span>
+                <div>
+                    <div style="color: #eab308; font-weight: 500; margin-bottom: 0.25rem;">AI-Flagged Notes</div>
+                    <div style="color: #a0a0a0; font-size: 0.85rem;">Notes classified as "Social-Emotional Risk" or "Family Situation" are automatically flagged for counselor review.</div>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        try:
+            alerts_df = get_counselor_alerts()
+            
+            if alerts_df.empty:
+                st.markdown("""
+                <div class="panel" style="text-align: center; padding: 3rem;">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">✅</div>
+                    <div style="color: #22c55e; font-size: 1.2rem; font-weight: 500;">All Clear!</div>
+                    <div style="color: #808080; font-size: 0.9rem; margin-top: 0.5rem;">No high-risk notes pending review.</div>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                # Stats row
+                pending = len(alerts_df[alerts_df['REVIEWED_AT'].isna()])
+                reviewed = len(alerts_df[alerts_df['REVIEWED_AT'].notna()])
+                
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.markdown(f"""
+                    <div class="metric-box">
+                        <div class="metric-label">Pending Review</div>
+                        <div class="metric-value red">{pending}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                with col2:
+                    st.markdown(f"""
+                    <div class="metric-box">
+                        <div class="metric-label">Reviewed</div>
+                        <div class="metric-value green">{reviewed}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                with col3:
+                    st.markdown(f"""
+                    <div class="metric-box">
+                        <div class="metric-label">Total Flagged</div>
+                        <div class="metric-value">{len(alerts_df)}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                st.markdown("<br>", unsafe_allow_html=True)
+                
+                # Filter
+                filter_status = st.selectbox("Filter by status", ["All", "Pending Review", "Reviewed"])
+                
+                if filter_status == "Pending Review":
+                    display_df = alerts_df[alerts_df['REVIEWED_AT'].isna()]
+                elif filter_status == "Reviewed":
+                    display_df = alerts_df[alerts_df['REVIEWED_AT'].notna()]
+                else:
+                    display_df = alerts_df
+                
+                # Display alerts
+                for _, alert in display_df.iterrows():
+                    is_pending = pd.isna(alert['REVIEWED_AT'])
+                    border_color = 'rgba(239, 68, 68, 0.3)' if is_pending else 'rgba(34, 197, 94, 0.3)'
+                    
+                    st.markdown(f"""
+                    <div class="panel" style="border-color: {border_color}; margin-bottom: 1rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.75rem;">
+                            <div>
+                                <span style="font-weight: 500; color: #e0e0e0;">{alert['STUDENT_NAME']}</span>
+                                <span style="color: #606060; font-size: 0.85rem;"> • Grade {int(alert['GRADE_LEVEL'])}</span>
+                            </div>
+                            <div style="background: rgba(239, 68, 68, 0.15); color: #ef4444; padding: 0.25rem 0.75rem; border-radius: 4px; font-size: 0.75rem; font-weight: 500;">
+                                {alert['AI_CLASSIFICATION']}
+                            </div>
+                        </div>
+                        <div style="color: #a0a0a0; font-size: 0.9rem; margin-bottom: 0.75rem; line-height: 1.5;">
+                            "{alert['NOTE_TEXT'][:200]}{'...' if len(str(alert['NOTE_TEXT'])) > 200 else ''}"
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; color: #606060; font-size: 0.8rem;">
+                            <span>Teacher category: {alert['TEACHER_CATEGORY']} • Confidence: {alert['AI_CONFIDENCE']:.0%}</span>
+                            <span>{alert['CREATED_AT'].strftime('%b %d, %Y %H:%M') if hasattr(alert['CREATED_AT'], 'strftime') else alert['CREATED_AT']}</span>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    if is_pending:
+                        if st.button(f"✓ Mark as Reviewed", key=f"review_{alert['NOTE_ID']}", use_container_width=True):
+                            session.sql(f"""
+                                UPDATE GRADSYNC_DB.APP.TEACHER_NOTES 
+                                SET reviewed_by = 'COUNSELOR', reviewed_at = CURRENT_TIMESTAMP()
+                                WHERE note_id = {alert['NOTE_ID']}
+                            """).collect()
+                            st.success("Marked as reviewed!")
+                            st.cache_data.clear()
+                            st.rerun()
+                    else:
+                        st.caption(f"✓ Reviewed by {alert['REVIEWED_BY']} on {alert['REVIEWED_AT']}")
+                    
+                    st.markdown("<br>", unsafe_allow_html=True)
+                    
+        except Exception as e:
+            st.error(f"Error loading alerts: {e}")
+            st.info("Run sql/10_ai_note_classification.sql to set up the alert queue.")
 
 
     # ============================================
