@@ -517,6 +517,61 @@ def get_recent_notes():
         LIMIT 50
     """).to_pandas()
 
+def analyze_student_patterns(student_id, student_name, notes_text):
+    """Use Cortex AI to detect patterns across multiple notes"""
+    try:
+        prompt = f"""You are a school counselor assistant. Review these teacher notes about {student_name} and write a simple summary for educators.
+
+Teacher observations:
+{notes_text}
+
+Write 2-3 short sentences that:
+- Point out any worrying patterns you see
+- Suggest one simple next step
+
+Use plain language a busy teacher can quickly read. If everything looks fine, just say "No concerns - student appears to be doing well."
+"""
+        result = session.sql(f"""
+            SELECT SNOWFLAKE.CORTEX.COMPLETE('mistral-large', $${prompt}$$) as analysis
+        """).collect()
+        return result[0]['ANALYSIS']
+    except Exception as e:
+        return f"Pattern analysis unavailable: {e}"
+
+@st.cache_data(ttl=120)
+def get_students_for_pattern_analysis():
+    """Get students with multiple notes for pattern analysis"""
+    return session.sql("""
+        SELECT 
+            n.student_id,
+            s.first_name || ' ' || s.last_name as student_name,
+            s.grade_level,
+            COUNT(*) as note_count,
+            LISTAGG(n.note_text, ' | ') WITHIN GROUP (ORDER BY n.created_at DESC) as all_notes,
+            AVG(n.sentiment_score) as avg_sentiment,
+            SUM(CASE WHEN n.is_high_risk THEN 1 ELSE 0 END) as high_risk_count
+        FROM GRADSYNC_DB.APP.TEACHER_NOTES n
+        JOIN GRADSYNC_DB.RAW_DATA.STUDENTS s ON n.student_id = s.student_id
+        WHERE n.created_at >= DATEADD('day', -30, CURRENT_TIMESTAMP())
+        GROUP BY n.student_id, s.first_name, s.last_name, s.grade_level
+        HAVING COUNT(*) >= 2
+        ORDER BY high_risk_count DESC, note_count DESC
+    """).to_pandas()
+
+@st.cache_data(ttl=60)
+def get_ai_insights():
+    """Get stored AI insights"""
+    try:
+        return session.sql("""
+            SELECT i.*, s.first_name || ' ' || s.last_name as student_name
+            FROM GRADSYNC_DB.APP.AI_INSIGHTS i
+            JOIN GRADSYNC_DB.RAW_DATA.STUDENTS s ON i.student_id = s.student_id
+            WHERE i.is_acknowledged = FALSE
+            ORDER BY i.created_at DESC
+        """).to_pandas()
+    except:
+        return pd.DataFrame()
+
 def generate_success_plan(student_data):
     prompt = f"""You are an educational advisor. Generate a specific, actionable Success Plan with 3-4 bullet points.
     
@@ -578,6 +633,7 @@ with nav_col:
         ("📊", "Analytics", "analytics"),
         ("📝", "Observations", "observation"),
         ("�",  "Counselor Alerts", "alerts"),
+        ("🧠", "AI Insights", "insights"),
         ("📤", "Import Data", "upload"),
         ("🎯", "Success Plans", "plans"),
     ]
@@ -1201,6 +1257,144 @@ with main_col:
         except Exception as e:
             st.error(f"Error loading alerts: {e}")
             st.info("Run sql/10_ai_note_classification.sql to set up the alert queue.")
+
+
+    # ============================================
+    # PAGE: AI INSIGHTS (Pattern Detection)
+    # ============================================
+    
+    elif page == "insights":
+        st.markdown('<div class="page-header">🧠 AI Insights</div>', unsafe_allow_html=True)
+        st.markdown('<div class="page-subtitle">See the bigger picture across teacher observations</div>', unsafe_allow_html=True)
+        
+        # Info banner
+        st.markdown("""
+        <div class="welcome-banner">
+            <div style="display: flex; align-items: flex-start; gap: 12px;">
+                <span style="font-size: 1.5rem;">�<</span>
+                <div>
+                    <div style="color: #22c55e; font-weight: 500; margin-bottom: 0.25rem;">How it works</div>
+                    <div style="color: #a0a0a0; font-size: 0.85rem;">Select a student to see what AI notices when looking at all their notes together.</div>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        try:
+            students_df = get_students_for_pattern_analysis()
+            
+            if students_df.empty:
+                st.markdown("""
+                <div class="panel" style="text-align: center; padding: 3rem;">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">📝</div>
+                    <div style="color: #808080; font-size: 1.1rem;">Not enough data yet</div>
+                    <div style="color: #606060; font-size: 0.9rem; margin-top: 0.5rem;">Pattern detection requires at least 2 notes per student in the last 30 days.</div>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                # Stats
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.markdown(f"""
+                    <div class="metric-box">
+                        <div class="metric-label">Students with Multiple Notes</div>
+                        <div class="metric-value">{len(students_df)}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                with col2:
+                    high_risk_students = len(students_df[students_df['HIGH_RISK_COUNT'] > 0])
+                    st.markdown(f"""
+                    <div class="metric-box">
+                        <div class="metric-label">With High-Risk Notes</div>
+                        <div class="metric-value red">{high_risk_students}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                with col3:
+                    total_notes = int(students_df['NOTE_COUNT'].sum())
+                    st.markdown(f"""
+                    <div class="metric-box">
+                        <div class="metric-label">Total Notes Analyzed</div>
+                        <div class="metric-value">{total_notes}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                st.markdown("<br>", unsafe_allow_html=True)
+                
+                # Student selector
+                st.markdown("""
+                <div class="panel">
+                    <div class="panel-title" style="margin-bottom: 1rem;">Select a Student</div>
+                """, unsafe_allow_html=True)
+                
+                student_options = dict(zip(
+                    students_df['STUDENT_NAME'] + " (" + students_df['NOTE_COUNT'].astype(str) + " notes)",
+                    students_df.index
+                ))
+                
+                selected = st.selectbox("Select a student to analyze", options=list(student_options.keys()))
+                
+                if selected:
+                    idx = student_options[selected]
+                    student = students_df.iloc[idx]
+                    
+                    # Show student info
+                    st.markdown(f"""
+                    <div style="background: #111; border-radius: 8px; padding: 1rem; margin: 1rem 0;">
+                        <div style="display: flex; justify-content: space-between;">
+                            <div>
+                                <span style="color: #e0e0e0; font-weight: 500;">{student['STUDENT_NAME']}</span>
+                                <span style="color: #606060;"> • Grade {int(student['GRADE_LEVEL'])}</span>
+                            </div>
+                            <div style="color: #606060; font-size: 0.85rem;">
+                                {int(student['NOTE_COUNT'])} notes • Avg sentiment: {student['AVG_SENTIMENT']:.2f}
+                            </div>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    if st.button("🧠 What does AI see?", type="primary", use_container_width=True):
+                        with st.spinner("Analyzing notes..."):
+                            analysis = analyze_student_patterns(
+                                student['STUDENT_ID'],
+                                student['STUDENT_NAME'],
+                                student['ALL_NOTES']
+                            )
+                            
+                            # Determine if concerning
+                            is_concerning = "no concerning" not in analysis.lower() and "no pattern" not in analysis.lower()
+                            
+                            if is_concerning:
+                                st.markdown(f"""
+                                <div class="panel" style="border-color: rgba(239, 68, 68, 0.3); margin-top: 1rem;">
+                                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 0.75rem;">
+                                        <span style="font-size: 1.2rem;">⚠️</span>
+                                        <span style="color: #ef4444; font-weight: 500;">Needs Attention</span>
+                                    </div>
+                                    <div style="color: #a0a0a0; line-height: 1.6;">{analysis}</div>
+                                </div>
+                                """, unsafe_allow_html=True)
+                            else:
+                                st.markdown(f"""
+                                <div class="panel" style="border-color: rgba(34, 197, 94, 0.3); margin-top: 1rem;">
+                                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 0.75rem;">
+                                        <span style="font-size: 1.2rem;">✅</span>
+                                        <span style="color: #22c55e; font-weight: 500;">Looking Good</span>
+                                    </div>
+                                    <div style="color: #a0a0a0; line-height: 1.6;">{analysis}</div>
+                                </div>
+                                """, unsafe_allow_html=True)
+                    
+                    # Show raw notes
+                    with st.expander("📋 See all notes"):
+                        notes = student['ALL_NOTES'].split(' | ')
+                        for i, note in enumerate(notes, 1):
+                            st.caption(f"{i}. {note}")
+                
+                st.markdown("</div>", unsafe_allow_html=True)
+                
+        except Exception as e:
+            st.error(f"Error: {e}")
+            st.info("Run sql/11_ai_pattern_detection.sql to set up pattern detection.")
 
 
     # ============================================
