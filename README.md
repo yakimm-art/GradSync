@@ -4,6 +4,10 @@
 
 > *AI-powered student success platform built entirely on Snowflake*
 
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://gradsync-qtdbeuus3takdnetpclpar.streamlit.app/)
+
+🔗 **Live Demo:** [https://gradsync-qtdbeuus3takdnetpclpar.streamlit.app/](https://gradsync-qtdbeuus3takdnetpclpar.streamlit.app/)
+
 A Snowflake Native App that proactively identifies at-risk students using AI-driven analysis and provides actionable intervention plans for educators.
 
 ---
