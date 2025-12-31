@@ -834,18 +834,13 @@ with nav_col:
     </div>
     """, unsafe_allow_html=True)
     
-    # Main navigation
+    # Consolidated navigation (5 main items)
     nav_items = [
-        ("🏠", "Overview", "dashboard"),
-        ("📊", "Analytics", "analytics"),
-        ("📝", "Observations", "observation"),
-        ("🚨",  "Counselor Alerts", "alerts"),
-        ("🧠", "AI Insights", "insights"),
-        ("⚡", "Early Warnings", "warnings"),
-        ("📈", "Sentiment Trends", "sentiment"),
+        ("🏠", "Dashboard", "dashboard"),
+        ("👥", "Students", "students"),
+        ("📝", "Notes", "notes"),
+        ("🎯", "Interventions", "interventions"),
         ("📤", "Import Data", "upload"),
-        ("🎯", "Success Plans", "plans"),
-        ("📋", "Interventions", "interventions"),
     ]
     
     for icon, label, key in nav_items:
@@ -1024,6 +1019,561 @@ with main_col:
                 st.rerun()
             
             st.markdown("</div>", unsafe_allow_html=True)
+
+    # ============================================
+    # PAGE: STUDENTS (Analytics + Early Warnings + Sentiment)
+    # ============================================
+    
+    elif page == "students":
+        st.markdown('<div class="page-header">👥 Students</div>', unsafe_allow_html=True)
+        st.markdown('<div class="page-subtitle">Student analytics, early warnings, and sentiment trends</div>', unsafe_allow_html=True)
+        
+        # Tabs for sub-sections
+        tab1, tab2, tab3 = st.tabs(["📊 Analytics", "⚡ Early Warnings", "📈 Sentiment Trends"])
+        
+        with tab1:
+            # ANALYTICS CONTENT
+            try:
+                metrics = get_metrics()
+                
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    st.markdown(f'<div class="metric-box"><div class="metric-label">Total Students</div><div class="metric-value">{metrics["TOTAL_STUDENTS"]}</div></div>', unsafe_allow_html=True)
+                with col2:
+                    st.markdown(f'<div class="metric-box"><div class="metric-label">Critical Risk</div><div class="metric-value red">{metrics["CRITICAL"]}</div></div>', unsafe_allow_html=True)
+                with col3:
+                    st.markdown(f'<div class="metric-box"><div class="metric-label">High Risk</div><div class="metric-value yellow">{metrics["HIGH_RISK"]}</div></div>', unsafe_allow_html=True)
+                with col4:
+                    st.markdown(f'<div class="metric-box"><div class="metric-label">Avg GPA</div><div class="metric-value">{metrics["AVG_GPA"]}</div></div>', unsafe_allow_html=True)
+            except Exception as e:
+                st.error(f"Error loading metrics: {e}")
+            
+            st.markdown("<hr>", unsafe_allow_html=True)
+            
+            # At-risk student list
+            st.markdown('<div class="panel-title">At-Risk Students</div>', unsafe_allow_html=True)
+            try:
+                at_risk_df = get_at_risk_students()
+                if not at_risk_df.empty:
+                    for _, student in at_risk_df.iterrows():
+                        risk_class = "critical" if student['RISK_SCORE'] >= 70 else "high" if student['RISK_SCORE'] >= 50 else "moderate"
+                        st.markdown(f"""
+                        <div class="student-row">
+                            <div class="risk-dot {risk_class}"></div>
+                            <span class="student-name">{student['STUDENT_NAME']}</span>
+                            <span class="student-info">Grade {int(student['GRADE_LEVEL'])}</span>
+                            <span class="student-info">Attendance: {student['ATTENDANCE_RATE']}%</span>
+                            <span class="student-info">GPA: {student['CURRENT_GPA']:.1f}</span>
+                            <span class="student-info">Risk: {student['RISK_SCORE']}</span>
+                        </div>
+                        """, unsafe_allow_html=True)
+                else:
+                    st.success("🎉 No at-risk students!")
+            except Exception as e:
+                st.warning(f"Could not load data: {e}")
+        
+        with tab2:
+            # EARLY WARNINGS CONTENT
+            st.markdown("""
+            <div class="info-tip">
+                ⚡ Students showing warning signs before becoming at-risk. Early intervention can prevent escalation.
+            </div>
+            """, unsafe_allow_html=True)
+            
+            try:
+                warning_df = get_early_warning_students()
+                if not warning_df.empty:
+                    for _, student in warning_df.iterrows():
+                        indicators = []
+                        if student.get('ATTENDANCE_DECLINING'): indicators.append("📉 Attendance declining")
+                        if student.get('GRADES_DROPPING'): indicators.append("📚 Grades dropping")
+                        if student.get('NEGATIVE_SENTIMENT'): indicators.append("😟 Negative sentiment")
+                        
+                        st.markdown(f"""
+                        <div class="panel" style="margin-bottom: 0.75rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <span style="color: #e0e0e0; font-weight: 500;">{student['STUDENT_NAME']}</span>
+                                    <span style="color: #606060; margin-left: 8px;">Grade {int(student['GRADE_LEVEL'])}</span>
+                                </div>
+                                <span class="badge badge-yellow">Warning Score: {student['EARLY_WARNING_SCORE']:.0f}</span>
+                            </div>
+                            <div style="margin-top: 0.5rem; color: #808080; font-size: 0.85rem;">
+                                {' | '.join(indicators) if indicators else 'Multiple minor indicators'}
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                else:
+                    st.success("🎉 No early warning signs detected!")
+            except Exception as e:
+                st.info("Early warning system ready - data will appear as patterns emerge.")
+        
+        with tab3:
+            # SENTIMENT TRENDS CONTENT
+            st.markdown("""
+            <div class="info-tip">
+                📈 Track how teacher observations about students change over time.
+            </div>
+            """, unsafe_allow_html=True)
+            
+            try:
+                sentiment_df = get_sentiment_summary()
+                if not sentiment_df.empty:
+                    # Show declining sentiment first
+                    declining = sentiment_df[sentiment_df['TREND'] == 'Declining']
+                    if not declining.empty:
+                        st.markdown('<div class="panel-title" style="color: #ef4444;">⚠️ Declining Sentiment</div>', unsafe_allow_html=True)
+                        for _, student in declining.iterrows():
+                            st.markdown(f"""
+                            <div class="student-row">
+                                <span class="student-name">{student['STUDENT_NAME']}</span>
+                                <span class="student-info">Change: {student['SENTIMENT_CHANGE']:.2f}</span>
+                            </div>
+                            """, unsafe_allow_html=True)
+                    
+                    improving = sentiment_df[sentiment_df['TREND'] == 'Improving']
+                    if not improving.empty:
+                        st.markdown('<div class="panel-title" style="color: #22c55e; margin-top: 1rem;">✨ Improving Sentiment</div>', unsafe_allow_html=True)
+                        for _, student in improving.iterrows():
+                            st.markdown(f"""
+                            <div class="student-row">
+                                <span class="student-name">{student['STUDENT_NAME']}</span>
+                                <span class="student-info">Change: +{student['SENTIMENT_CHANGE']:.2f}</span>
+                            </div>
+                            """, unsafe_allow_html=True)
+                else:
+                    st.info("Add teacher observations to see sentiment trends.")
+            except Exception as e:
+                st.info("Sentiment tracking ready - add observations to see trends.")
+
+    # ============================================
+    # PAGE: NOTES (Observations + Alerts + AI Insights)
+    # ============================================
+    
+    elif page == "notes":
+        st.markdown('<div class="page-header">📝 Notes & Alerts</div>', unsafe_allow_html=True)
+        st.markdown('<div class="page-subtitle">Teacher observations, counselor alerts, and AI insights</div>', unsafe_allow_html=True)
+        
+        # Tabs for sub-sections
+        tab1, tab2, tab3 = st.tabs(["📝 Add Observation", "🚨 Counselor Alerts", "🧠 AI Insights"])
+        
+        with tab1:
+            # OBSERVATION ENTRY CONTENT
+            st.markdown("""
+            <div class="welcome-banner">
+                <div style="display: flex; align-items: flex-start; gap: 12px;">
+                    <span style="font-size: 1.5rem;">💡</span>
+                    <div>
+                        <div style="color: #22c55e; font-weight: 500; margin-bottom: 0.25rem;">Quick Tip</div>
+                        <div style="color: #a0a0a0; font-size: 0.85rem;">Your observations help identify students who may need support. Notes are analyzed by AI to detect patterns and flag concerns.</div>
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            try:
+                students_df = get_students()
+                
+                col1, col2 = st.columns([1, 2])
+                
+                with col1:
+                    selected_student = st.selectbox("Select Student", options=students_df['STUDENT_NAME'].tolist(), help="Choose the student you want to write about")
+                    student_row = students_df[students_df['STUDENT_NAME'] == selected_student].iloc[0]
+                    student_id = student_row['STUDENT_ID']
+                    
+                    category = st.selectbox("Category", ["Classroom Behavior", "Academic Performance", "Social Interaction", "Attendance Pattern", "Parent Communication", "Positive Recognition", "Concern"])
+                
+                with col2:
+                    note_text = st.text_area("Your Observation", height=150, placeholder="What did you notice about this student today?", help="Be specific - include what you observed, when, and any context")
+                    
+                    if st.button("💾 Save Observation", type="primary", use_container_width=True):
+                        if note_text.strip():
+                            try:
+                                sentiment = analyze_sentiment(note_text)
+                                classification, confidence = classify_note(note_text)
+                                is_high_risk = is_high_risk_category(classification) if classification else False
+                                
+                                note_id = str(uuid.uuid4())[:8]
+                                
+                                class_value = f"'{classification}'" if classification else "NULL"
+                                conf_value = confidence if confidence else "NULL"
+                                
+                                session.sql(f"""
+                                    INSERT INTO APP.TEACHER_NOTES (note_id, student_id, note_text, note_category, sentiment_score, ai_classification, ai_confidence, is_high_risk)
+                                    VALUES ('{note_id}', '{student_id}', $${note_text}$$, '{category}', {sentiment}, {class_value}, {conf_value}, {is_high_risk})
+                                """).collect()
+                                
+                                st.success("✅ Observation saved!")
+                                if is_high_risk:
+                                    st.warning(f"⚠️ Flagged for counselor review: {classification}")
+                                
+                                st.cache_data.clear()
+                            except Exception as e:
+                                st.error(f"Error saving: {e}")
+                        else:
+                            st.warning("Please enter your observation.")
+                
+                # Recent notes
+                st.markdown("<hr>", unsafe_allow_html=True)
+                st.markdown('<div class="panel-title">Recent Observations</div>', unsafe_allow_html=True)
+                
+                recent = get_recent_notes()
+                if not recent.empty:
+                    for _, note in recent.head(5).iterrows():
+                        sentiment_color = "#22c55e" if note['SENTIMENT_SCORE'] > 0 else "#ef4444" if note['SENTIMENT_SCORE'] < 0 else "#808080"
+                        st.markdown(f"""
+                        <div class="panel" style="margin-bottom: 0.5rem;">
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: #e0e0e0;">{note['STUDENT_NAME']}</span>
+                                <span style="color: {sentiment_color}; font-size: 0.8rem;">{note['AI_CLASSIFICATION'] or note['NOTE_CATEGORY']}</span>
+                            </div>
+                            <div style="color: #808080; font-size: 0.85rem; margin-top: 0.25rem;">{note['NOTE_TEXT'][:100]}...</div>
+                        </div>
+                        """, unsafe_allow_html=True)
+            except Exception as e:
+                st.warning(f"Setup required: {e}")
+        
+        with tab2:
+            # COUNSELOR ALERTS CONTENT
+            st.markdown("""
+            <div class="info-tip">
+                🚨 Notes flagged as high-risk by AI that may need counselor review.
+            </div>
+            """, unsafe_allow_html=True)
+            
+            try:
+                alerts_df = get_counselor_alerts()
+                if not alerts_df.empty:
+                    pending = alerts_df[alerts_df['REVIEWED_AT'].isna()]
+                    reviewed = alerts_df[alerts_df['REVIEWED_AT'].notna()]
+                    
+                    if not pending.empty:
+                        st.markdown(f'<div class="panel-title" style="color: #ef4444;">⚠️ Pending Review ({len(pending)})</div>', unsafe_allow_html=True)
+                        for _, alert in pending.iterrows():
+                            st.markdown(f"""
+                            <div class="panel" style="border-color: rgba(239, 68, 68, 0.3); margin-bottom: 0.75rem;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <span style="color: #e0e0e0; font-weight: 500;">{alert['STUDENT_NAME']}</span>
+                                        <span style="color: #606060; margin-left: 8px;">Grade {int(alert['GRADE_LEVEL'])}</span>
+                                    </div>
+                                    <span class="badge badge-red">{alert['AI_CLASSIFICATION']}</span>
+                                </div>
+                                <div style="color: #a0a0a0; font-size: 0.9rem; margin-top: 0.5rem;">{alert['NOTE_TEXT']}</div>
+                            </div>
+                            """, unsafe_allow_html=True)
+                    else:
+                        st.success("✅ All alerts reviewed!")
+                else:
+                    st.info("No high-risk alerts at this time.")
+            except Exception as e:
+                st.info("Counselor alerts ready - high-risk notes will appear here.")
+        
+        with tab3:
+            # AI INSIGHTS CONTENT
+            st.markdown("""
+            <div class="info-tip">
+                🧠 AI-detected patterns across multiple teacher observations.
+            </div>
+            """, unsafe_allow_html=True)
+            
+            try:
+                # Students with multiple notes for pattern analysis
+                pattern_df = get_students_for_pattern_analysis()
+                if not pattern_df.empty:
+                    st.markdown('<div class="panel-title">Students with Multiple Observations</div>', unsafe_allow_html=True)
+                    
+                    for _, student in pattern_df.head(5).iterrows():
+                        with st.expander(f"🔍 {student['STUDENT_NAME']} ({student['NOTE_COUNT']} notes)"):
+                            if st.button(f"Analyze Patterns", key=f"analyze_{student['STUDENT_ID']}"):
+                                with st.spinner("AI analyzing patterns..."):
+                                    analysis = analyze_student_patterns(
+                                        student['STUDENT_ID'],
+                                        student['STUDENT_NAME'],
+                                        student['ALL_NOTES'][:2000]
+                                    )
+                                    st.markdown(analysis)
+                else:
+                    st.info("Add more observations to enable pattern detection.")
+                
+                # Stored AI insights
+                insights_df = get_ai_insights()
+                if not insights_df.empty:
+                    st.markdown("<hr>", unsafe_allow_html=True)
+                    st.markdown('<div class="panel-title">Recent AI Insights</div>', unsafe_allow_html=True)
+                    for _, insight in insights_df.head(5).iterrows():
+                        st.markdown(f"""
+                        <div class="panel" style="margin-bottom: 0.5rem;">
+                            <div style="color: #e0e0e0;">{insight['STUDENT_NAME']}</div>
+                            <div style="color: #808080; font-size: 0.85rem;">{insight.get('INSIGHT_TEXT', 'Pattern detected')}</div>
+                        </div>
+                        """, unsafe_allow_html=True)
+            except Exception as e:
+                st.info("AI insights ready - patterns will appear as data accumulates.")
+
+    # ============================================
+    # PAGE: INTERVENTIONS (Success Plans + Tracking)
+    # ============================================
+    
+    elif page == "interventions":
+        st.markdown('<div class="page-header">🎯 Interventions</div>', unsafe_allow_html=True)
+        st.markdown('<div class="page-subtitle">Create success plans and track intervention outcomes</div>', unsafe_allow_html=True)
+        
+        # Tabs for sub-sections
+        tab1, tab2 = st.tabs(["🎯 Create Plan", "📋 Track Progress"])
+        
+        with tab1:
+            # SUCCESS PLANS CONTENT
+            st.markdown("""
+            <div class="welcome-banner">
+                <div style="display: flex; align-items: flex-start; gap: 12px;">
+                    <span style="font-size: 1.5rem;">🤖</span>
+                    <div>
+                        <div style="color: #22c55e; font-weight: 500; margin-bottom: 0.25rem;">AI-Powered Recommendations</div>
+                        <div style="color: #a0a0a0; font-size: 0.85rem;">Select a student and generate personalized intervention strategies based on their data.</div>
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            try:
+                at_risk_df = get_at_risk_students()
+                
+                if not at_risk_df.empty:
+                    col1, col2 = st.columns([1, 2])
+                    
+                    with col1:
+                        selected = st.selectbox("Select Student", options=at_risk_df['STUDENT_NAME'].tolist(), help="Students shown here have been flagged as at-risk")
+                        student_data = at_risk_df[at_risk_df['STUDENT_NAME'] == selected].iloc[0].to_dict()
+                        
+                        color = "red" if student_data['RISK_SCORE'] >= 70 else "yellow" if student_data['RISK_SCORE'] >= 50 else ""
+                        risk_label = "Critical" if student_data['RISK_SCORE'] >= 70 else "High" if student_data['RISK_SCORE'] >= 50 else "Moderate"
+                        
+                        st.markdown(f"""
+                        <div class="metric-box" style="text-align: center;">
+                            <div class="metric-label">Risk Level</div>
+                            <div class="metric-value {color}" style="font-size: 1.5rem;">{risk_label}</div>
+                            <div style="color: #606060; font-size: 0.8rem;">Score: {student_data['RISK_SCORE']}</div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                        c1, c2 = st.columns(2)
+                        with c1:
+                            st.metric("Attendance", f"{student_data['ATTENDANCE_RATE']}%")
+                        with c2:
+                            st.metric("GPA", f"{student_data['CURRENT_GPA']:.1f}")
+                    
+                    with col2:
+                        if st.button("🤖 Generate Success Plan", use_container_width=True, type="primary"):
+                            with st.spinner("AI is analyzing student data..."):
+                                try:
+                                    student_id = student_data.get('STUDENT_ID', '')
+                                    risk_breakdown = get_student_risk_breakdown(student_id) if student_id else None
+                                    recent_notes = get_recent_notes_summary(student_id) if student_id else None
+                                    
+                                    plan, needs_counselor = generate_success_plan(student_data, risk_breakdown, recent_notes)
+                                    
+                                    # Log the intervention
+                                    primary_factor = risk_breakdown.get('primary_factor', 'Unknown') if risk_breakdown else 'Unknown'
+                                    if student_id:
+                                        log_intervention(student_id, plan, student_data['RISK_SCORE'], primary_factor, needs_counselor)
+                                    
+                                    st.success("✅ Plan generated and logged!")
+                                    
+                                    if needs_counselor:
+                                        st.warning("⚠️ Consider counselor referral for this student.")
+                                    
+                                    st.markdown(plan)
+                                except Exception as e:
+                                    st.error(f"Error: {e}")
+                else:
+                    st.success("🎉 All students are performing well!")
+            except Exception as e:
+                st.warning(f"Setup required: {e}")
+        
+        with tab2:
+            # INTERVENTION TRACKING CONTENT
+            stats = get_intervention_stats()
+            if stats:
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    st.markdown(f'<div class="metric-box"><div class="metric-label">Total Plans</div><div class="metric-value">{stats["TOTAL_PLANS"]}</div></div>', unsafe_allow_html=True)
+                with col2:
+                    st.markdown(f'<div class="metric-box"><div class="metric-label">In Progress</div><div class="metric-value yellow">{stats["IN_PROGRESS"]}</div></div>', unsafe_allow_html=True)
+                with col3:
+                    st.markdown(f'<div class="metric-box"><div class="metric-label">Completed</div><div class="metric-value green">{stats["COMPLETED"]}</div></div>', unsafe_allow_html=True)
+                with col4:
+                    st.markdown(f'<div class="metric-box"><div class="metric-label">Counselor Referrals</div><div class="metric-value">{stats["COUNSELOR_REFERRALS"]}</div></div>', unsafe_allow_html=True)
+            
+            st.markdown("<hr>", unsafe_allow_html=True)
+            
+            filter_status = st.selectbox("Filter", ["All", "In Progress", "Completed"])
+            
+            history_df = get_intervention_history()
+            
+            if not history_df.empty:
+                if filter_status == "In Progress":
+                    history_df = history_df[history_df['STATUS'] == 'In Progress']
+                elif filter_status == "Completed":
+                    history_df = history_df[history_df['STATUS'] == 'Completed']
+                
+                for _, row in history_df.iterrows():
+                    counselor_text = " | 🚨 Counselor Referral" if row['COUNSELOR_REFERRAL'] else ''
+                    created_date = row['PLAN_GENERATED_AT'].strftime('%b %d, %Y') if pd.notna(row['PLAN_GENERATED_AT']) else 'N/A'
+                    
+                    with st.container():
+                        col_info, col_status = st.columns([3, 1])
+                        with col_info:
+                            st.markdown(f"**{row['STUDENT_NAME']}** · Grade {int(row['GRADE_LEVEL'])}{counselor_text}")
+                            st.caption(f"Risk: {row['RISK_SCORE_AT_PLAN']} | Factor: {row['PRIMARY_RISK_FACTOR']} | Created: {created_date}")
+                        with col_status:
+                            if row['STATUS'] == 'In Progress':
+                                st.warning("In Progress")
+                            else:
+                                st.success("Completed")
+                    
+                    with st.expander(f"📄 View Plan & Log Outcome"):
+                        st.markdown("**Plan:**")
+                        st.markdown(row['PLAN_TEXT'] if row['PLAN_TEXT'] else "No plan text")
+                        
+                        if row['STATUS'] == 'In Progress':
+                            st.markdown("---")
+                            interventions = st.text_area("Interventions completed", key=f"int_{row['LOG_ID']}", height=60)
+                            outcome = st.text_area("Outcome notes", key=f"out_{row['LOG_ID']}", height=60)
+                            
+                            if st.button("✅ Mark Complete", key=f"done_{row['LOG_ID']}", type="primary"):
+                                if interventions and outcome:
+                                    if update_intervention_outcome(row['LOG_ID'], interventions, outcome):
+                                        st.success("Saved!")
+                                        st.cache_data.clear()
+                                        st.rerun()
+                                else:
+                                    st.warning("Fill in both fields.")
+                        else:
+                            if row['INTERVENTIONS_COMPLETED']:
+                                st.markdown("**Completed:**")
+                                st.markdown(row['INTERVENTIONS_COMPLETED'])
+                            if row['OUTCOME_NOTES']:
+                                st.markdown("**Outcome:**")
+                                st.markdown(row['OUTCOME_NOTES'])
+            else:
+                st.info("No intervention plans yet. Create one in the 'Create Plan' tab.")
+
+    # ============================================
+    # PAGE: IMPORT DATA
+    # ============================================
+    
+    elif page == "upload":
+        st.markdown('<div class="page-header">📤 Import Data</div>', unsafe_allow_html=True)
+        st.markdown('<div class="page-subtitle">Upload attendance, grades, and student data</div>', unsafe_allow_html=True)
+        
+        # Friendly intro
+        st.markdown("""
+        <div class="panel" style="background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%); border-color: rgba(34, 197, 94, 0.2);">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 1.5rem;">💡</span>
+                <div>
+                    <div style="color: #22c55e; font-weight: 500;">Easy Import</div>
+                    <div style="color: #808080; font-size: 0.85rem;">Upload CSV files from Excel, Google Sheets, or your school system exports.</div>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        col1, col2 = st.columns([2, 1])
+        
+        with col1:
+            data_type = st.selectbox(
+                "What type of data are you uploading?",
+                ["students", "attendance", "grades"],
+                format_func=lambda x: {
+                    "students": "👥 Student Roster", 
+                    "attendance": "📅 Attendance Records", 
+                    "grades": "📝 Grade Data"
+                }[x]
+            )
+            
+            uploaded_file = st.file_uploader("Choose your file", type=['csv', 'xlsx'])
+            
+            if uploaded_file:
+                try:
+                    df = pd.read_csv(uploaded_file) if uploaded_file.name.endswith('.csv') else pd.read_excel(uploaded_file)
+                    
+                    st.success(f"✓ File loaded: {uploaded_file.name} ({len(df)} records)")
+                    
+                    with st.expander("Preview data", expanded=True):
+                        st.dataframe(df.head(10), use_container_width=True)
+                    
+                    if st.button("📥 Import Data", use_container_width=True, type="primary"):
+                        with st.spinner("Importing..."):
+                            try:
+                                batch_id = str(uuid.uuid4())[:8]
+                                progress = st.progress(0)
+                                
+                                for i, (_, row) in enumerate(df.iterrows()):
+                                    row_json = row.to_json()
+                                    session.sql(f"""
+                                        INSERT INTO RAW_DATA.BULK_UPLOAD_STAGING 
+                                        (upload_batch, uploaded_by, data_type, raw_data)
+                                        VALUES ('{batch_id}', CURRENT_USER(), '{data_type}', PARSE_JSON($${row_json}$$))
+                                    """).collect()
+                                    progress.progress((i + 1) / len(df))
+                                
+                                st.success(f"🎉 {len(df)} records imported!")
+                                st.balloons()
+                                st.cache_data.clear()
+                            except Exception as e:
+                                st.error(f"Import failed: {e}")
+                except Exception as e:
+                    st.error("Could not read file. Check format.")
+        
+        with col2:
+            st.markdown("""
+            <div class="panel">
+                <div class="panel-title" style="margin-bottom: 0.75rem;">📋 Required Columns</div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            if data_type == "students":
+                st.caption("student_id, first_name, last_name, grade_level")
+            elif data_type == "attendance":
+                st.caption("student_id, date, status (Present/Absent/Tardy)")
+            else:
+                st.caption("student_id, subject, assignment, score")
+
+    # ============================================
+    # LEGACY PAGES (redirect to new consolidated pages)
+    # ============================================
+    
+    elif page == "analytics":
+        st.session_state.page = "students"
+        st.rerun()
+    
+    elif page == "observation":
+        st.session_state.page = "notes"
+        st.rerun()
+    
+    elif page == "alerts":
+        st.session_state.page = "notes"
+        st.rerun()
+    
+    elif page == "insights":
+        st.session_state.page = "notes"
+        st.rerun()
+    
+    elif page == "warnings":
+        st.session_state.page = "students"
+        st.rerun()
+    
+    elif page == "sentiment":
+        st.session_state.page = "students"
+        st.rerun()
+    
+    elif page == "plans":
+        st.session_state.page = "interventions"
+        st.rerun()
 
     # ============================================
     # PAGE: ANALYTICS (Detailed Charts & Trends)
