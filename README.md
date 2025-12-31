@@ -30,21 +30,31 @@ GradSync brings modern data infrastructure to an old problem. By consolidating s
 ## ✨ Features
 
 ### 📊 Dashboard
-- **Modern UI** with light/dark mode toggle
+- **Modern UI** with light/dark mode toggle and theme-aware styling
 - **Real-time metrics** — Total students, at-risk count, attendance rates, GPA averages
-- **Colorful stat cards** with gradient backgrounds
-- **Quick actions** for common tasks
-- **Recent alerts** sidebar
-- **Intervention progress** tracking
+- **Colorful stat cards** with gradient backgrounds (purple, orange, green, pink)
+- **Quick actions** for common tasks (Add Note, New Plan)
+- **Recent alerts** sidebar with counselor notifications
+- **Intervention progress** tracking with visual progress ring
+- **Interactive help guide** — Step-by-step onboarding tour for new users
+- **Empty state prompts** — Guides users to import data when starting fresh
 
 ### 👥 Students Module
-Three integrated views in one place:
+Four integrated views in one place:
 
 | Tab | Description |
 |-----|-------------|
-| **📊 Analytics** | At-risk student list with risk scores, attendance, and GPA |
+| **👥 All Students** | Complete roster with search, grade filtering, and 2-column grid view |
+| **📊 At-Risk** | Students sorted by risk score with attendance and GPA metrics |
 | **⚡ Early Warnings** | Students showing warning signs before becoming at-risk |
-| **📈 Sentiment Trends** | Track how teacher observations change over time |
+| **📈 Sentiment Trends** | Track how teacher observations change over time (improving/declining) |
+
+**Student Detail View:**
+- Comprehensive profile with risk breakdown visualization
+- Attendance statistics (rate, absences, tardies)
+- Academic performance with recent grades
+- Teacher notes history with sentiment indicators
+- Quick actions: Add Note, Generate Plan, Translate for Parents
 
 ### 📝 Notes Module
 Comprehensive observation and alert system:
@@ -54,6 +64,11 @@ Comprehensive observation and alert system:
 | **📝 Add Observation** | Log teacher notes with AI sentiment analysis |
 | **🚨 Counselor Alerts** | High-risk notes flagged for counselor review |
 | **🧠 AI Insights** | Cross-teacher pattern detection using Cortex AI |
+
+**AI-Powered Classification:**
+- Automatic categorization: Academic Struggle, Behavioral Concern, Safety Threat, Social-Emotional Risk, Family Situation, Positive Progress
+- High-risk categories automatically flagged for counselor review
+- Confidence scores for AI classifications
 
 ### 🎯 Interventions Module
 End-to-end intervention management:
@@ -65,9 +80,11 @@ End-to-end intervention management:
 
 **Key Features:**
 - 4-factor risk breakdown (Attendance, Academic, Sentiment, AI Signals)
-- "Why This Score?" explainability
-- Counselor referral recommendations
+- "Why This Score?" explainability with visual progress bars
+- Counselor referral recommendations for social-emotional/family concerns
 - Parent message translation (8+ languages)
+- Intervention logging with outcome tracking
+- Statistics dashboard (total plans, completed, in-progress, referrals)
 
 ### 📤 Import Data
 Multiple data entry points:
@@ -76,16 +93,24 @@ Multiple data entry points:
 - **Preview & Validate** — See data before importing
 - **Progress Tracking** — Real-time import status
 
+### 🎨 User Experience
+- **Responsive Navigation** — Icon-based sidebar with active state indicators
+- **Theme Toggle** — Switch between light and dark modes
+- **Settings Page** — Customize app behavior
+- **Help Guide** — Interactive 4-step onboarding walkthrough
+- **SVG Icons** — Inline icons with no external dependencies
+- **Cached Data** — Smart caching for improved performance (60-300s TTL)
+
 ---
 
 ## 🤖 AI-Powered Features
 
 | Feature | Snowflake Cortex Function | Description |
 |---------|---------------------------|-------------|
-| **Sentiment Analysis** | `CORTEX.SENTIMENT` | Analyzes teacher notes for emotional tone |
-| **Note Classification** | `CORTEX.CLASSIFY_TEXT` | Categorizes notes (Academic, Behavioral, Safety, etc.) |
+| **Sentiment Analysis** | `CORTEX.SENTIMENT` | Analyzes teacher notes for emotional tone (-1 to +1 scale) |
+| **Note Classification** | `CORTEX.CLASSIFY_TEXT` | Categorizes notes into 6 concern types with confidence scores |
 | **Pattern Detection** | `CORTEX.COMPLETE` | Identifies hidden patterns across multiple observations |
-| **Success Plans** | `CORTEX.COMPLETE` | Generates personalized intervention strategies |
+| **Success Plans** | `CORTEX.COMPLETE` | Generates personalized 4-point intervention strategies |
 | **Translation** | `CORTEX.TRANSLATE` | Parent outreach in 8+ languages |
 
 ### Risk Scoring System
@@ -94,6 +119,11 @@ Multiple data entry points:
 Risk Score = Attendance Risk + Academic Risk + Sentiment Risk + AI Signal Risk
              (0-25 pts)       (0-25 pts)      (0-25 pts)       (0-25 pts)
 ```
+
+**Sentiment Risk Calculation:**
+- Negative average sentiment: up to 60 points
+- Each negative note: +15 points (max 50)
+- Multiple notes pattern: +10 points
 
 **Risk Levels:**
 - 🟢 **Low** (0-49): Student on track

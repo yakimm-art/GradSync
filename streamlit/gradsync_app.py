@@ -1357,7 +1357,7 @@ with main_col:
                 "title": "Navigation",
                 "desc": "Find what you need quickly",
                 "items": [
-                    "� Studeonts — Analytics & warnings",
+                    "👥 Students — Analytics & warnings",
                     "📝 Notes — Log observations",
                     "🎯 Interventions — Success plans",
                     "📤 Import — Upload data"
